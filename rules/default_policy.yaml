@@ -28,10 +28,31 @@ rules:
       matches: ["(?i)\\bfind\\b[^|;&]*-delete\\b|\\bfind\\b[^|;&]*-exec\\s+rm\\b|\\bshred\\b|\\bdd\\b[^|;&]*\\bof=|\\bmkfs\\b|\\btruncate\\b[^|;&]*-s\\s*0\\b", { var: command }]
 
   - id: block-fork-bomb
-    description: "Shell fork-bomb pattern is blocked."
+    description: "Fork-bomb and process-exhaustion patterns are blocked before they can freeze the host."
     action: BLOCK
     when:
-      matches: [":\\(\\)\\s*\\{\\s*:\\s*\\|\\s*:", { var: command }]
+      # Canonical shell fork bomb plus equivalent recursive shell/Python/PowerShell process spawners.
+      # The policy deliberately blocks only self-replicating/unbounded forms; ordinary parallel work
+      # is routed to the resource-review rule below.
+      matches: ["(?i):\\(\\)\\s*\\{\\s*:\\s*\\|\\s*:|\\bwhile\\s+(true|1)\\s*;?\\s*do\\s+(?:[^;&]*\\s)?(?:bash|sh|zsh|fish|powershell|pwsh)\\b[^;&]*[&;]|\\b(?:os\\.)?fork\\s*\\(\\s*\\).*\\b(?:while|for)\\b|\\bwhile\\s+(true|1)\\s*:\\s*(?:[^\\n]*;\\s*)?(?:os\\.)?(fork|spawn|popen)\\s*\\(|\\b(Start-Process|start)\\b[^|;&]*\\b(?:powershell|pwsh|cmd)(?:\\.exe)?\\b[^|;&]*-?(?:NoExit|Command)\\b[^|;&]*\\b(Start-Process|start)\\b", { var: command }]
+
+  - id: block-os-tweaks
+    description: "Changing host kernel, network, name-resolution, firewall, boot, or service configuration is blocked; it can destabilize the workstation or create a persistent security hole."
+    action: BLOCK
+    when:
+      matches: ["(?i)\\b(sysctl\\s+(-w|--write)|sysctl\\s+-p|systemctl\\s+(enable|disable|mask|unmask|set-default)|service\\s+\\S+\\s+(enable|disable)|update-rc\\.d|chkconfig|ufw\\s+(enable|disable|allow|deny|reset)|iptables|nft\\s+(add|delete|flush|replace)|firewall-cmd|netsh\\s+(advfirewall|interface|winsock)|Set-Net(IP|Firewall|Route)|New-NetFirewallRule|Set-ItemProperty\\b[^|;&]*(Tcpip|DNSClient|Internet Settings))\\b|\\b(?:tee|cat|echo|printf|sed|perl|python[0-9.]*)\\b[^|;&]*(?:>>?|\\|)\\s*(?:/etc/(?:hosts|sysctl(?:\\.conf|\\.d/[^\\s]+)?|resolv\\.conf|fstab|sudoers)|/boot/|/etc/systemd/)|\\b(?:cp|mv|install)\\b[^|;&]*\\s+/etc/(?:hosts|sysctl(?:\\.conf|\\.d/[^\\s]+)?|resolv\\.conf|fstab|sudoers)\\b", { var: command }]
+
+  - id: hitl-resource-intensive-execution
+    description: "Unbounded/high-parallelism execution or very large allocation requests require approval so the agent cannot exhaust CPU or RAM."
+    action: HITL
+    when:
+      matches: ["(?i)\\b(xargs|parallel)\\b[^|;&]*(?:-P\\s*(?:0|[1-9][0-9]{2,})|--jobs[= ](?:0|[1-9][0-9]{2,}))|\\b(make|ninja|cmake\\s+--build|cargo|go|pytest)\\b[^|;&]*(?:-j\\s*(?:0|[1-9][0-9]{2,})|--jobs[= ](?:0|[1-9][0-9]{2,}))|\\b(?:stress(?:-ng)?|yes|bomb)\\b|\\b(?:ulimit|prlimit)\\b[^|;&]*(?:unlimited|[1-9][0-9]{7,})|\\b(?:python[0-9.]*|node|java)\\b[^|;&]*(?:--(?:workers|threads|max-old-space-size)=?(?:[1-9][0-9]{2,}|0)|-Xmx[1-9][0-9]{2,}[gG])", { var: command }]
+
+  - id: hitl-untrusted-binary-parser
+    description: "Parsing or unpacking an untrusted binary, archive, media, document, or firmware artifact requires approval; native parsers may be exposed to malformed/polyglot input."
+    action: HITL
+    when:
+      matches: ["(?i)\\b(binwalk|exiftool|foremost|bulk_extractor|radare2|r2|objdump|readelf|strings|hexdump|xxd|ffmpeg|ffprobe|convert|magick|pdftotext|pdfinfo|mutool|qpdf|unzip|7z|rar|tar)\\b(?:\\s|$)|\\b(?:python[0-9.]*|node|java)\\b[^|;&]*(?:PIL\\.Image\\.open|cv2\\.imread|pypdf|PyPDF2|zipfile\\.ZipFile|tarfile\\.open|sharp\\(|unzipper|pdf-parse)", { var: command }]
 
   - id: block-known-malicious-package
     description: "Installing a KNOWN-compromised package/version (supply-chain IOC: litellm 1.82.7/1.82.8, grokwrapper, xz 5.6.0/5.6.1) is blocked. Extend this list for your org."
