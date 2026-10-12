@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 112" role="img" aria-labelledby="title-light">
+  <title id="title-light">GuardSaaB — Software as a Blockade</title>
+  <defs>
+    <linearGradient id="shield-light" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0284c7"/>
+      <stop offset="1" stop-color="#0369a1"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(12 8)">
+    <path d="M42 3 76 21v35L42 89 8 56V21L42 3Z" fill="#0f172a" stroke="url(#shield-light)" stroke-width="4"/>
+    <path d="M52 29a19 19 0 1 0 1 25h-13v-9h26v9a28 28 0 1 1-6-31l-7 8Z" fill="#ffffff"/>
+    <path d="M19 60h46M25 68h34" stroke="#0284c7" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <text x="112" y="69" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="49" font-weight="700" letter-spacing="1">Guard<tspan fill="#0284c7">SaaB</tspan></text>
+  <text x="116" y="96" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="600" letter-spacing="3.2">SOFTWARE AS A BLOCKADE</text>
+</svg>
