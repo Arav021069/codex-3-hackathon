@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#101211" />
+    <script>
+      (function() {
+        try {
+          var isGuardSaaB = window.location.port === '5174' || (window.location.port !== '5173' && window.location.pathname === '/guardsaab');
+          var portal = isGuardSaaB ? 'guardsaab' : 'northstar';
+          var key = isGuardSaaB ? 'guardsaab-theme' : 'northstar-theme';
+          var saved = localStorage.getItem(key);
+          var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+          var theme = (saved === 'light' || saved === 'dark') ? saved : (prefersLight ? 'light' : 'dark');
+          var root = document.documentElement;
+          root.classList.remove('dark', 'light');
+          root.classList.add(theme);
+          root.setAttribute('data-theme', theme);
+          root.setAttribute('data-portal', portal);
+        } catch (e) {}
+      })();
+    </script>
     <meta name="description" content="Northstar Works employee services for attendance, leave, pay, company funds, and people operations." />
     <meta name="application-name" content="Northstar Works" />
     <meta property="og:type" content="website" />
