@@ -158,6 +158,18 @@ npm run test:postgres-audit
 npm run test:regression
 ```
 
+## Terminal governance console
+
+GuardSaaB also includes a terminal companion to the governance dashboard. It exposes live status, the Scenario Lab demonstrations, approvals, activity, and session timelines:
+
+```bash
+guardsaab console
+# or from this repository
+npx tsx src/cli/index.ts console
+```
+
+See [the full terminal-console guide](docs/CLI_CONSOLE.md).
+
 The PostgreSQL audit integration check requires a reachable database configured with `GUARDSAAB_TEST_DATABASE_URL`. The GitHub Actions workflow provisions PostgreSQL for this check.
 
 ## Project documentation

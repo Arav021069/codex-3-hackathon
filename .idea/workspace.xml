@@ -5,9 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f20c6e28-53e9-409a-8e31-2873a8d47a58" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dashboard/src/ScenarioLab.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/dashboard/src/ScenarioLab.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rules/default_policy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/rules/default_policy.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/policy.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/policy.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/cli/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/cli/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/server.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/server.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,6 +23,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Shell Script.start-demo.sh.executor": "Run",
     "git-widget-placeholder": "main",
     "ts.external.directory.path": "/home/sujal/pycharm/projects/warden/codex-3-hackathon/node_modules/typescript/lib"
   }

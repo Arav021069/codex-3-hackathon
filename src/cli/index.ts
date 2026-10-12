@@ -173,6 +173,10 @@ async function runPending(): Promise<void> {
 async function main(): Promise<void> {
   const cmd = process.argv[2];
   if (cmd === 'engine') return runEngine();
+  if (cmd === 'console') {
+    const { runConsole } = await import('./console.js');
+    return runConsole(process.argv.slice(3));
+  }
   if (cmd === 'proxy') return runProxy();
   if (cmd === 'hook') {
     await import('../hook/index.js');
@@ -205,6 +209,7 @@ async function main(): Promise<void> {
     'usage: guardsaab <command>\n\n' +
       '  init [--agent claude|codex|cursor|cline] [--global] [--print]   wire the hooks into the agent\n' +
       '  engine                      start the gateway (HTTP hold + WS) and serve the dashboard\n' +
+      '  console [command]           terminal governance console (status, scenarios, review queue, activity)\n' +
       '  proxy                       start the network-layer egress proxy (HTTPS_PROXY target)\n' +
       '  hook                        the Claude Code hook entry (spawned per tool call)\n' +
       '  pending                     list calls held for review (with their ids)\n' +

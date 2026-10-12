@@ -631,7 +631,7 @@ export class Engine {
     if (action === 'ALLOW' || action === 'BLOCK') {
       await this.writeAudit({ ...base, event: 'decision', action, reason, viaHitl: false });
       if (action === 'BLOCK') this.maybeAutoOpen(call.sessionId, risk.band);
-      return json(res, 200, { action, reason, band: risk.band, sessionId: call.sessionId });
+      return json(res, 200, { action, ruleId, reason, band: risk.band, sessionId: call.sessionId });
     }
 
     // HITL — terminal/ASK surface: don't hold. Return ASK so the adapter can defer to the agent's NATIVE
@@ -640,7 +640,7 @@ export class Engine {
     const askMode = call.approvalMode ? call.approvalMode === 'ask' : (this.opts.approvalSurface ?? 'terminal') === 'terminal';
     if (askMode) {
       await this.writeAudit({ ...base, event: 'hitl-opened', reason });
-      return json(res, 200, { action: 'ASK', reason, band: risk.band, sessionId: call.sessionId });
+      return json(res, 200, { action: 'ASK', ruleId, reason, band: risk.band, sessionId: call.sessionId });
     }
 
     // HITL — dashboard surface: build a violation, hold the socket, and wait for a verdict.
