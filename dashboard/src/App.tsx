@@ -129,7 +129,7 @@ export default function App() {
     if (!role || !isGuardSaaBSite) return;
     const refresh = async () => {
       try {
-        const response = await fetch('/company-demo-state?site=warden', { signal: AbortSignal.timeout(2500) });
+        const response = await fetch('/company-demo-state?site=guardsaab', { signal: AbortSignal.timeout(2500) });
         if (response.ok) {
           const payload = await response.json() as { state?: CompanyDemoRecord | null };
           if (payload.state) {
@@ -199,7 +199,7 @@ export default function App() {
     try {
       const request = companyDemo?.requests.find((item) => item.id === requestId);
       if (!request) throw new Error('This request is no longer available in the current view. Refresh the queue and try again.');
-      const response = await fetch('/company-demo-state/decision?site=warden', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ requestId, decision: approve ? 'approve' : 'reject' }) });
+      const response = await fetch('/company-demo-state/decision?site=guardsaab', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ requestId, decision: approve ? 'approve' : 'reject' }) });
       const payload = await response.json() as { state?: CompanyDemoRecord; error?: string; alreadyDecided?: boolean; duplicateBlocked?: boolean };
       if (!response.ok || !payload.state) throw new Error(payload.error ?? `The decision could not be saved (HTTP ${response.status}).`);
       const confirmed = payload.state;
@@ -230,7 +230,7 @@ export default function App() {
         const sessionResponse = await fetch('/auth/session?site=guardsaab', { signal: AbortSignal.timeout(2000) });
         const session = await sessionResponse.json() as { user?: GuardSaaBUser | null };
         setUser(session.user ?? null);
-        const stateResponse = await fetch('/company-demo-state?site=warden', { signal: AbortSignal.timeout(2000) });
+        const stateResponse = await fetch('/company-demo-state?site=guardsaab', { signal: AbortSignal.timeout(2000) });
         if (stateResponse.ok) {
           const latest = await stateResponse.json() as { state?: CompanyDemoRecord | null };
           if (latest.state) { setCompanyDemo(latest.state); setCompanyEvents(latest.state.events ?? []); }

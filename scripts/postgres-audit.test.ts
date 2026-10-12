@@ -4,10 +4,10 @@ import { join } from 'node:path';
 import { Pool } from 'pg';
 import { AuditStore } from '../src/db/audit-store.js';
 
-const databaseUrl = process.env['GUARDSAAB_TEST_DATABASE_URL'] ?? process.env['WARDEN_TEST_DATABASE_URL'];
+const databaseUrl = process.env['GUARDSAAB_TEST_DATABASE_URL'];
 if (!databaseUrl) throw new Error('Set GUARDSAAB_TEST_DATABASE_URL to run the PostgreSQL audit integration checks.');
 
-const stateDir = mkdtempSync(join(tmpdir(), 'warden-pg-audit-'));
+const stateDir = mkdtempSync(join(tmpdir(), 'guardsaab-pg-audit-'));
 const store = new AuditStore(databaseUrl, stateDir);
 const probe = new Pool({ connectionString: databaseUrl, max: 1 });
 let passed = 0;
@@ -28,8 +28,8 @@ try {
 
   let updateBlocked = false;
   let deleteBlocked = false;
-  try { await probe.query("UPDATE warden_audit_chain SET payload = '{}'::jsonb WHERE seq = 1"); } catch { updateBlocked = true; }
-  try { await probe.query('DELETE FROM warden_audit_chain WHERE seq = 1'); } catch { deleteBlocked = true; }
+  try { await probe.query("UPDATE guardsaab_audit_chain SET payload = '{}'::jsonb WHERE seq = 1"); } catch { updateBlocked = true; }
+  try { await probe.query('DELETE FROM guardsaab_audit_chain WHERE seq = 1'); } catch { deleteBlocked = true; }
   check('PostgreSQL trigger rejects audit row updates', updateBlocked);
   check('PostgreSQL trigger rejects audit row deletes', deleteBlocked);
 } catch (error) {

@@ -14,8 +14,8 @@
 - **Reason:** No existing Firebase project, hosting requirement, or multi-user workflow exists in the workspace. Approval needs explicit transaction semantics.
 - **Consequence:** Revisit relational or managed storage when team use is designed; migration must preserve event IDs and history.
 
-## D003: Warden owns authorization semantics
+## D003: GuardSaaB owns authorization semantics
 
 - **Status:** Accepted as a design constraint.
-- **Decision:** Third-party tools may inform adapter and parser design, but mandatory policies, approval identity, revalidation, and authorization remain controlled by Warden.
+- **Decision:** Third-party tools may inform adapter and parser design, but mandatory policies, approval identity, revalidation, and authorization remain controlled by GuardSaaB.
 - **Reason:** Candidate integration semantics and coverage differ; some agent hooks document fail-open or incomplete action coverage.

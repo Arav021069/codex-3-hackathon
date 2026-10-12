@@ -1,10 +1,10 @@
 # Feature matrix
 
-Legend: **Verified** means source was inspected in the candidate snapshot, not that Warden has qualified the feature. **Partial** means a narrower mechanism or documented limitation exists. **Missing/unverified** means no evidence sufficient for a positive claim. The selected base contains implementation code, but Warden qualification is pending.
+Legend: **Verified** means source was inspected in the candidate snapshot, not that GuardSaaB has qualified the feature. **Partial** means a narrower mechanism or documented limitation exists. **Missing/unverified** means no evidence sufficient for a positive claim. The selected base contains implementation code, but GuardSaaB qualification is pending.
 
-| Capability | Cerberus | Reflex | Claude Warden | srjn45/warden | Warden status/source to evaluate |
+| Capability | Cerberus | Reflex | Claude Warden | srjn45/warden | GuardSaaB status/source to evaluate |
 |---|---|---|---|---|---|
-| Pre-execution command interception | Verified in server/hook path | Verified in hook/gate modules | Verified/documented PreToolUse | Missing as per-action governance | Present in clone; Warden qualification pending |
+| Pre-execution command interception | Verified in server/hook path | Verified in hook/gate modules | Verified/documented PreToolUse | Missing as per-action governance | Present in clone; GuardSaaB qualification pending |
 | Shell parsing | Partial; inspect actual parsers before relying | Partial custom lexical shell analysis | AST claim via bash-parser | Missing/unverified | Missing; required |
 | Effect explanation | Partial risk factors/reasons | Partial command/context reasons | Partial rule reasons | Missing | Missing; distinguish intent/prediction/observation |
 | Contextual risk | Verified rule/anomaly/content pipeline | Verified context-aware policies in docs/source | Partial command rules | Partial process/fleet context | Missing |

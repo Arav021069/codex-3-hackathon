@@ -4,14 +4,14 @@
 
 ## Product and users
 
-Warden governs actions proposed by AI coding agents. Initial users are individual developers and small engineering teams who want to let agents work autonomously within explicit limits while retaining approval and accountability for consequential actions. Warden should report the limits of each integration instead of implying universal agent coverage.
+GuardSaaB governs actions proposed by AI coding agents. Initial users are individual developers and small engineering teams who want to let agents work autonomously within explicit limits while retaining approval and accountability for consequential actions. GuardSaaB should report the limits of each integration instead of implying universal agent coverage.
 
 ## Core journey
 
 1. A developer configures a supported agent adapter and local policy.
 2. The agent proposes a supported action, and an adapter sends a normalized request to a local enforcement service before execution.
 3. Deterministic identity, permission, and policy checks run. Risk analysis supplies evidence and explanation but cannot weaken a mandatory prohibition.
-4. Warden returns allow, ask, or block. Ask binds an approval to an exact action and context. The enforcement service revalidates the request after approval.
+4. GuardSaaB returns allow, ask, or block. Ask binds an approval to an exact action and context. The enforcement service revalidates the request after approval.
 5. The agent integration executes only when allowed and reports available outcome evidence.
 6. The event history links request, decision, approval, execution result, and session for a dashboard view.
 
@@ -31,7 +31,7 @@ Local-first operation, safe failure for protected actions, bounded hook latency,
 
 ## First milestone acceptance
 
-One verified, testable agent integration; pre-execution interception for a documented action subset; deterministic allow/ask/block; useful non-fabricated effect explanation; authorized action-bound human approval; enforcement of the decision; persisted audit lifecycle and observed result; basic dashboard; automated allowed, blocked, approval, expiry, modified-action, and failure-path tests. The cloned Cerberus app supplies a substantial starting implementation, but Warden has not yet validated those acceptance criteria end to end.
+One verified, testable agent integration; pre-execution interception for a documented action subset; deterministic allow/ask/block; useful non-fabricated effect explanation; authorized action-bound human approval; enforcement of the decision; persisted audit lifecycle and observed result; basic dashboard; automated allowed, blocked, approval, expiry, modified-action, and failure-path tests. The cloned Cerberus app supplies a substantial starting implementation, but GuardSaaB has not yet validated those acceptance criteria end to end.
 
 ### Compatibility constraint discovered
 

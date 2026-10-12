@@ -93,8 +93,8 @@ export class Engine {
   private readonly audit: AuditLog;
   private auditStore?: AuditStore;
   private readonly inMemoryAccounts = new Map<string, AuthAccount>();
-  private readonly inMemorySessions = new Map<string, { token: string; user: AuthenticatedUser; site: 'company' | 'warden'; expiresAt: number }>();
-  private readonly webTokens = new Map<string, { site: 'company' | 'warden'; user: AuthenticatedUser }>();
+  private readonly inMemorySessions = new Map<string, { token: string; user: AuthenticatedUser; site: 'company' | 'guardsaab'; expiresAt: number }>();
+  private readonly webTokens = new Map<string, { site: 'company' | 'guardsaab'; user: AuthenticatedUser }>();
   private readonly loginFailures = new Map<string, { count: number; startedAt: number }>();
   private readonly ioc: IocStore;
   /** Shared synthetic people/fund state for the company and GuardSaaB demo clients. */
@@ -204,12 +204,12 @@ export class Engine {
       if (req.url?.startsWith('/company-demo-state') && (req.method === 'GET' || req.method === 'PUT' || req.method === 'POST')) {
         if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
         const requestedWorkspace = new URL(req.url, 'http://127.0.0.1').searchParams.get('site');
-        if (requestedWorkspace && requestedWorkspace !== 'company' && requestedWorkspace !== 'warden' && requestedWorkspace !== 'guardsaab') return json(res, 400, { error: 'Choose a valid company workspace.' });
-        const preferredWorkspace: 'company' | 'warden' = requestedWorkspace === 'company'
+        if (requestedWorkspace && requestedWorkspace !== 'company' && requestedWorkspace !== 'guardsaab') return json(res, 400, { error: 'Choose a valid company workspace.' });
+        const preferredWorkspace: 'company' | 'guardsaab' = requestedWorkspace === 'company'
           ? 'company'
-          : requestedWorkspace === 'warden' || requestedWorkspace === 'guardsaab' ? 'warden' : workspaceFromRequest(req);
-        const site: 'company' | 'warden' = preferredWorkspace;
-        const auth = site === 'company' ? await this.getWebSession(req, 'company') : await this.getWebSession(req, 'warden');
+          : requestedWorkspace === 'guardsaab' ? 'guardsaab' : workspaceFromRequest(req);
+        const site: 'company' | 'guardsaab' = preferredWorkspace;
+        const auth = site === 'company' ? await this.getWebSession(req, 'company') : await this.getWebSession(req, 'guardsaab');
         if (!auth) return json(res, 401, { error: 'Sign in to access company records.' });
         if (req.method === 'POST' && req.url.split('?')[0] === '/company-demo-state/request') {
           if (site !== 'company' || auth.role !== 'Employee' || !auth.employeeId) return json(res, 403, { error: 'Only a signed-in employee can submit a fund request.' });
@@ -358,14 +358,14 @@ export class Engine {
       }
       if (req.method === 'GET' && req.url === '/audit-chain') {
         if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
-        if (!(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (!(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         if (!this.auditStore) return json(res, 200, { status: { enabled: false, verified: false, count: 0, headHash: null, checkpointSeq: 0, checkedAt: new Date().toISOString() }, entries: [] });
         const [status, entries] = await Promise.all([this.auditStore.status(), this.auditStore.recent()]);
         return json(res, 200, { status, entries: entries.map((entry) => ({ ...entry, payload: sanitizeAuditPayload(entry.payload) })) });
       }
       if (req.method === 'GET' && req.url === '/audit-chain/export') {
         if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
-        if (!(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (!(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         if (!this.auditStore) return json(res, 503, { error: 'PostgreSQL audit storage is not enabled.' });
         const exported = sanitizedAuditExport(await this.auditStore.recent());
         res.setHeader('content-disposition', 'attachment; filename="guardsaab-audit-sanitized.json"');
@@ -373,7 +373,7 @@ export class Engine {
       }
       if (req.method === 'POST' && req.url === '/audit-chain/verify') {
         if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
-        if (!(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (!(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         if (!this.auditStore) return json(res, 503, { error: 'PostgreSQL audit storage is not enabled.' });
         return json(res, 200, { status: await this.auditStore.verify() });
       }
@@ -384,14 +384,14 @@ export class Engine {
         return await this.handleOllamaTags(req, res);
       }
       if (req.method === 'GET' && req.url === '/pending') {
-        if (req.headers.origin && !(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (req.headers.origin && !(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         return json(res, 200, { pending: this.store.pending() });
       }
       if (req.method === 'POST' && req.url === '/decision') {
         // Same sink as /ws (resolveContext auto-approves a held call) — gate cross-origin browsers out
         // (defense-in-depth alongside the missing-CORS-handler preflight that already blocks JSON POSTs).
         if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
-        if (req.headers.origin && !(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (req.headers.origin && !(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         const body = await readJson<DashboardToServer>(req);
         if (body?.type !== 'decision' || typeof body.violationId !== 'string' || !body.violationId || (body.action !== 'ALLOW' && body.action !== 'BLOCK')) return json(res, 400, { error: 'A pending request ID and ALLOW or BLOCK decision are required.' });
         await this.store.resolveContext(body.violationId, body.action);
@@ -399,27 +399,27 @@ export class Engine {
       }
       if (req.method === 'POST' && req.url === '/intercept') {
         if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
-        if (req.headers.origin && !(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (req.headers.origin && !(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         return await this.handleIntercept(req, res);
       }
       if (req.method === 'POST' && req.url === '/inspect') {
         if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
-        if (req.headers.origin && !(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (req.headers.origin && !(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         return await this.handleInspect(req, res);
       }
       if (req.method === 'POST' && req.url === '/session') {
         if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
-        if (req.headers.origin && !(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (req.headers.origin && !(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         return await this.handleSession(req, res);
       }
       // Investigation history (D25): project the replayed audit log into session rollups / a timeline.
       // O(log size) per request — fine for the local single-engine tier; the paid tier would index.
       if (req.method === 'GET' && req.url === '/sessions') {
-        if (req.headers.origin && !(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (req.headers.origin && !(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         return json(res, 200, { sessions: summarizeSessions(this.audit.read()) });
       }
       if (req.method === 'GET' && req.url?.startsWith('/sessions/')) {
-        if (req.headers.origin && !(await this.getWebSession(req, 'warden'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
+        if (req.headers.origin && !(await this.getWebSession(req, 'guardsaab'))) return json(res, 401, { error: 'GuardSaaB sign-in required.' });
         const m = /^\/sessions\/([^/]+)\/timeline\/?$/.exec(req.url.split('?')[0] ?? '');
         if (m) return json(res, 200, projectTimeline(this.audit.read(), decodeURIComponent(m[1] as string)));
       }
@@ -437,11 +437,10 @@ export class Engine {
     if (!originAllowed(req.headers.origin)) return json(res, 403, { error: 'forbidden origin' });
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const requestedSite = url.searchParams.get('site');
-    // Persisted sessions still use the legacy internal site key for compatibility with existing DBs.
-    if (requestedSite !== 'company' && requestedSite !== 'warden' && requestedSite !== 'guardsaab') return json(res, 400, { error: 'Choose a valid sign-in workspace.' });
-    const site = requestedSite === 'guardsaab' ? 'warden' : requestedSite;
+    if (requestedSite !== 'company' && requestedSite !== 'guardsaab') return json(res, 400, { error: 'Choose a valid sign-in workspace.' });
+    const site = requestedSite;
     const cookieName = site === 'company' ? 'northstar_session' : 'guardsaab_session';
-    const token = cookieValue(req, cookieName) ?? (site === 'warden' ? cookieValue(req, 'warden_session') : null);
+    const token = cookieValue(req, cookieName);
     if (req.method === 'GET' && url.pathname === '/auth/session') {
       let user: AuthenticatedUser | null = null;
       if (this.auditStore) {
@@ -464,7 +463,7 @@ export class Engine {
         result = await this.auditStore.login(body.username, body.password, site);
       } else {
         const account = this.inMemoryAccounts.get(body.username.trim().toLowerCase());
-        if (account && account.password === body.password && !(site === 'warden' && account.role === 'Employee')) {
+        if (account && account.password === body.password && !(site === 'guardsaab' && account.role === 'Employee')) {
           const sessionToken = randomUUID();
           const user: AuthenticatedUser = { username: account.username, displayName: account.displayName, role: account.role, ...(account.employeeId ? { employeeId: account.employeeId } : {}) };
           this.inMemorySessions.set(sessionToken, { token: sessionToken, user, site, expiresAt: Date.now() + 12 * 3600_000 });
@@ -494,18 +493,16 @@ export class Engine {
       }
       if (token) this.webTokens.delete(token);
       if (user) await this.auditStore?.appendAuth({ action: 'sign-out', username: user.username, displayName: user.displayName, role: user.role, site, time: Date.now() });
-      res.setHeader('set-cookie', site === 'warden'
-        ? [`${cookieName}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`, 'guardsaab_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', 'warden_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0']
-        : `${cookieName}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
+      res.setHeader('set-cookie', `${cookieName}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
       return json(res, 200, { ok: true });
     }
     json(res, 404, { error: 'not found' });
   }
 
-  private async getWebSession(req: IncomingMessage, site: 'company' | 'warden'): Promise<AuthenticatedUser | null> {
+  private async getWebSession(req: IncomingMessage, site: 'company' | 'guardsaab'): Promise<AuthenticatedUser | null> {
     const token = site === 'company'
       ? cookieValue(req, 'northstar_session')
-      : cookieValue(req, 'guardsaab_session') ?? cookieValue(req, 'warden_session');
+      : cookieValue(req, 'guardsaab_session');
     let user: AuthenticatedUser | null = null;
     if (this.auditStore) {
       user = await this.auditStore.session(token, site);
@@ -518,7 +515,7 @@ export class Engine {
   }
 
   private async getAnyWebSession(req: IncomingMessage): Promise<AuthenticatedUser | null> {
-    return await this.getWebSession(req, 'company') ?? await this.getWebSession(req, 'warden');
+    return await this.getWebSession(req, 'company') ?? await this.getWebSession(req, 'guardsaab');
   }
 
   /** Local-only Ollama bridge: keeps browser CORS configuration out of the demo setup. */
@@ -566,7 +563,7 @@ export class Engine {
 
   private localOllamaEndpoint(): URL | null {
     try {
-      const endpoint = new URL(process.env.GUARDSAAB_OLLAMA_URL ?? process.env.WARDEN_OLLAMA_URL ?? 'http://127.0.0.1:11434');
+      const endpoint = new URL(process.env.GUARDSAAB_OLLAMA_URL ?? 'http://127.0.0.1:11434');
       const localHosts = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
       return endpoint.protocol === 'http:' && localHosts.has(endpoint.hostname) ? endpoint : null;
     } catch { return null; }
@@ -792,8 +789,8 @@ export class Engine {
       try {
         const msg = JSON.parse(raw.toString()) as DashboardToServer;
         if (msg.type === 'decision') {
-          const operator = this.webTokens.get(cookieValue(req, 'guardsaab_session') ?? cookieValue(req, 'warden_session') ?? '');
-          if (!req.headers.origin || (operator?.site === 'warden' && (operator.user.role === 'HR' || operator.user.role === 'CEO'))) void this.store.resolveContext(msg.violationId, msg.action);
+          const operator = this.webTokens.get(cookieValue(req, 'guardsaab_session') ?? '');
+          if (!req.headers.origin || (operator?.site === 'guardsaab' && (operator.user.role === 'HR' || operator.user.role === 'CEO'))) void this.store.resolveContext(msg.violationId, msg.action);
         }
       } catch {
         /* ignore malformed dashboard messages */
@@ -809,9 +806,9 @@ export class Engine {
   private verifyWebSocket(req: IncomingMessage): boolean {
     if (!originAllowed(req.headers.origin)) return false;
     if (!req.headers.origin) return true;
-    const operator = this.webTokens.get(cookieValue(req, 'guardsaab_session') ?? cookieValue(req, 'warden_session') ?? '');
+    const operator = this.webTokens.get(cookieValue(req, 'guardsaab_session') ?? '');
     const company = this.webTokens.get(cookieValue(req, 'northstar_session') ?? '');
-    return Boolean((operator?.site === 'warden' && (operator.user.role === 'HR' || operator.user.role === 'CEO')) || company?.site === 'company');
+    return Boolean((operator?.site === 'guardsaab' && (operator.user.role === 'HR' || operator.user.role === 'CEO')) || company?.site === 'company');
   }
 
   /* ------------------------------ static dashboard ------------------------------ */
@@ -861,14 +858,14 @@ function initialCompanyState(): CompanyStateShape {
   ], requests: [], ledger: [], events: [] };
 }
 
-function scopedEmployeeIds(state: CompanyStateShape, user: AuthenticatedUser, site: 'company' | 'warden'): Set<string> {
+function scopedEmployeeIds(state: CompanyStateShape, user: AuthenticatedUser, site: 'company' | 'guardsaab'): Set<string> {
   if (user.role === 'CEO') return new Set((state.employees ?? []).map((employee) => String(employee.id)));
   if (user.role === 'Employee') return new Set(user.employeeId ? [user.employeeId] : []);
-  const hrName = site === 'warden' ? 'Nikhil Rao' : user.displayName;
+  const hrName = site === 'guardsaab' ? 'Nikhil Rao' : user.displayName;
   return new Set((state.employees ?? []).filter((employee) => employee.manager === hrName).map((employee) => String(employee.id)));
 }
 
-function scopeCompanyState(value: unknown, user: AuthenticatedUser, site: 'company' | 'warden'): unknown {
+function scopeCompanyState(value: unknown, user: AuthenticatedUser, site: 'company' | 'guardsaab'): unknown {
   if (!value || typeof value !== 'object') return value;
   const state = value as CompanyStateShape;
   const allowed = scopedEmployeeIds(state, user, site);
@@ -885,7 +882,7 @@ function scopeCompanyState(value: unknown, user: AuthenticatedUser, site: 'compa
   return { ...state, employees, requests, ledger: (state.ledger ?? []).filter((entry) => allowed.has(String(entry.employeeId))), events };
 }
 
-function mergeScopedCompanyState(currentValue: unknown, nextValue: unknown, user: AuthenticatedUser, site: 'company' | 'warden'): unknown {
+function mergeScopedCompanyState(currentValue: unknown, nextValue: unknown, user: AuthenticatedUser, site: 'company' | 'guardsaab'): unknown {
   if (!nextValue || typeof nextValue !== 'object') throw new Error('Company records must be an object.');
   const current = (currentValue && typeof currentValue === 'object' ? currentValue : {}) as CompanyStateShape;
   const next = nextValue as CompanyStateShape;
@@ -919,13 +916,11 @@ function mergeScopedCompanyState(currentValue: unknown, nextValue: unknown, user
       const amount = Number(incoming.amount);
       const employee = employees.find((row) => String(row.id) === employeeId);
       const isEmployeeRequest = user.role === 'Employee' && employeeId === user.employeeId;
-      // Employee submissions must use the atomic request endpoint, never a browser state snapshot.
-      if (isEmployeeRequest) continue;
       const expectedStatus = incoming.kind === 'QUOTA_INCREASE'
         ? amount > 200000 ? 'PENDING_CEO' : 'PENDING_HR'
         : amount > 100000 ? 'PENDING_CEO' : 'PENDING_HR';
       const reviewRequest = incoming.status === expectedStatus;
-      if (!employee || !allowed.has(employeeId) || !Number.isFinite(amount) || amount <= 0 || amount > 2_000_000 || typeof incoming.purpose !== 'string' || !incoming.purpose.trim() || !mayManage(employeeId) || !reviewRequest) continue;
+      if (!employee || !allowed.has(employeeId) || !Number.isFinite(amount) || amount <= 0 || amount > 2_000_000 || typeof incoming.purpose !== 'string' || !incoming.purpose.trim() || (!mayManage(employeeId) && !isEmployeeRequest) || !reviewRequest) continue;
       const normalizePurpose = (value: unknown) => String(value ?? '').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
       if (requests.some((row) => String(row.employeeId) === employeeId && row.kind === incoming.kind
         && Number(row.amount) === amount && normalizePurpose(row.purpose) === normalizePurpose(incoming.purpose)
@@ -935,8 +930,48 @@ function mergeScopedCompanyState(currentValue: unknown, nextValue: unknown, user
       addTrustedEvent(`${user.role} · ${user.displayName}`, incoming.kind === 'QUOTA_INCREASE' ? 'Additional fund quota requested' : 'Company fund request submitted', `${amount} INR for ${String(employee.name ?? employeeId)} · ${String(row.purpose)}`, String(row.status), id);
       continue;
     }
-    // Existing request decisions are accepted only through the atomic approval endpoint.
-    continue;
+    const currentRequest = requests[oldIndex];
+    if (!currentRequest) continue;
+    if (incoming.status === 'APPROVED' || incoming.status === 'REJECTED') {
+      if (currentRequest.status !== 'PENDING_HR' && currentRequest.status !== 'PENDING_CEO') continue;
+      const employeeId = String(currentRequest.employeeId ?? '');
+      const employee = employeeRows.find((row) => String(row.id) === employeeId);
+      if (!employee || !allowed.has(employeeId)) continue;
+      if (user.role !== 'HR' && user.role !== 'CEO') continue;
+      if (currentRequest.status === 'PENDING_CEO' && user.role !== 'CEO') continue;
+      const cap = currentRequest.kind === 'QUOTA_INCREASE' ? 200_000 : 100_000;
+      if (user.role === 'HR' && Number(currentRequest.amount) > cap) continue;
+      const newStatus = incoming.status;
+      requests[oldIndex] = { ...currentRequest, status: newStatus, approvalBy: `${user.role} · ${user.displayName}` };
+      if (newStatus === 'APPROVED') {
+        const amount = Number(currentRequest.amount ?? 0);
+        const empIdx = employeeRows.findIndex((row) => String(row.id) === employeeId);
+        if (currentRequest.kind === 'QUOTA_INCREASE') {
+          if (empIdx >= 0) {
+            const emp = employeeRows[empIdx]!;
+            employeeRows[empIdx] = {
+              ...emp,
+              fundQuota: Number(emp.fundQuota ?? 200000) + amount,
+              fundsRemaining: Number(emp.fundsRemaining ?? 0) + amount,
+            };
+          }
+          addTrustedEvent(`${user.role} · ${user.displayName}`, 'Fund quota increase approved', `${amount} INR for ${String(employee.name ?? employeeId)} · ${String(currentRequest.purpose ?? '')}`, 'APPROVED', id);
+        } else {
+          if (empIdx >= 0) {
+            const emp = employeeRows[empIdx]!;
+            employeeRows[empIdx] = {
+              ...emp,
+              fundsRemaining: Math.max(0, Number(emp.fundsRemaining ?? 0) - amount),
+            };
+          }
+          const transactionId = `NSTAR-${randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase()}`;
+          ledger.unshift({ id: transactionId, employeeId, amount, purpose: currentRequest.purpose, time: now, requestId: id });
+          addTrustedEvent(`${user.role} · ${user.displayName}`, 'Company funds approved', `${amount} INR for ${String(employee.name ?? employeeId)} · ${String(currentRequest.purpose ?? '')}`, 'APPROVED', id);
+        }
+      } else {
+        addTrustedEvent(`${user.role} · ${user.displayName}`, 'Company fund request rejected', `${String(currentRequest.amount)} INR for ${String(employee.name ?? employeeId)} · ${String(currentRequest.purpose ?? '')}`, 'REJECTED', id);
+      }
+    }
   }
   // Browser-provided `events` are deliberately ignored. Audit facts are derived from accepted
   // server-side state transitions above so the client cannot forge actor, timestamp, or outcome.
@@ -982,17 +1017,18 @@ function originAllowed(origin: string | undefined): boolean {
   }
 }
 
-function workspaceFromRequest(req: IncomingMessage): 'company' | 'warden' {
+function workspaceFromRequest(req: IncomingMessage): 'company' | 'guardsaab' {
   // The two localhost frontends share a cookie jar. Use the calling site's port (or path when
   // served from one origin) to choose which independently authenticated session to validate.
   for (const value of [req.headers.origin, req.headers.referer]) {
     if (!value) continue;
     try {
       const url = new URL(value);
-      if (url.port === '5174' || url.pathname === '/guardsaab' || url.pathname.startsWith('/guardsaab/')) return 'warden';
+      if (url.port === '5174' || url.pathname === '/guardsaab' || url.pathname.startsWith('/guardsaab/')) return 'guardsaab';
       if (url.port === '5173') return 'company';
     } catch { /* ignore malformed optional browser metadata */ }
   }
+  if (cookieValue(req, 'guardsaab_session') && !cookieValue(req, 'northstar_session')) return 'guardsaab';
   return 'company';
 }
 

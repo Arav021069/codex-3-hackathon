@@ -64,7 +64,7 @@ DENY_RESPONSE = {
 
 
 def _audit_path() -> Path:
-    override = os.environ.get("GUARDSAAB_AUDIT_PATH") or os.environ.get("WARDEN_AUDIT_PATH")
+    override = os.environ.get("GUARDSAAB_AUDIT_PATH")
     if override:
         return Path(override)
     local_app_data = os.environ.get("LOCALAPPDATA")

@@ -1,6 +1,6 @@
 # Known limitations
 
-- The selected upstream application is present in `warden/`; Warden branding, product adaptation, and full security review remain incomplete.
+- The selected upstream application is present at the repository root; GuardSaaB branding, product adaptation, and full security review remain incomplete.
 - Candidate research is a point-in-time snapshot from 2026-10-11; upstream revisions and agent hook contracts can change.
 - The `srjn45/warden` shallow checkout was unusable because its branch/ref appeared broken; its GitHub docs were reviewed, but local source was not.
 - Cerberus dependencies are installed and a limited local smoke test was run; no adversarial security assessment was performed.

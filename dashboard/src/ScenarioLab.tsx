@@ -160,13 +160,13 @@ export function ScenarioLab({ connected, onNavigateToApprovals, onNavigateToActi
         };
 
         try {
-          const currentRes = await fetch('/company-demo-state?site=warden');
+          const currentRes = await fetch('/company-demo-state?site=guardsaab');
           if (currentRes.ok) {
             const data = await currentRes.json();
             const state = data.state ?? { employees: [], requests: [], ledger: [], events: [] };
             state.requests = [newRequest, ...(state.requests ?? [])];
             state.events = [newEvent, ...(state.events ?? [])];
-            await fetch('/company-demo-state?site=warden', {
+            await fetch('/company-demo-state?site=guardsaab', {
               method: 'PUT',
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify(state),

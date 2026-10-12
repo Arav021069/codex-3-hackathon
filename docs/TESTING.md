@@ -1,6 +1,6 @@
 # Testing plan
 
-The repository has a Python `unittest` hook prototype (`python -m unittest discover -s tests -v`); it does not invoke Codex. The GuardSaaB app is in `warden/` and provides checks including `npm run build`, `npm run test:policy`, `npm run test:adapters`, and `npm run test:audit`. These are baseline checks, not proof of production security.
+The repository has a Python `unittest` hook prototype (`python -m unittest discover -s tests -v`); it does not invoke Codex. The GuardSaaB app is at the repository root and provides checks including `npm run build`, `npm run test:policy`, `npm run test:adapters`, and `npm run test:audit`. These are baseline checks, not proof of production security.
 
 ## Required layers
 

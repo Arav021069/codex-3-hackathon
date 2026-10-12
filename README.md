@@ -4,34 +4,124 @@
 
 Both websites, the shared engine, database setup, policies, documentation, and launch scripts are tracked together in this repository.
 
-## Run locally
+## Tech Stack
 
-On Windows, double-click [`start-demo.bat`](start-demo.bat) to start PostgreSQL, the engine, and both websites, wait for them to be ready, and open both pages. Keep its service windows open while presenting.
+GuardSaaB is architected as a local-first, low-latency control plane and dual-portal demonstration platform:
 
-### Requirements
+* **Engine & Security Gateway**:
+  * **Runtime**: Node.js 20+ (ESM & TypeScript 5.7+)
+  * **Networking**: Native HTTP engine + WebSocket server ([`ws`](https://github.com/websockets/ws)) on `127.0.0.1:9000`
+  * **Policy Evaluation**: Deterministic [JsonLogic](https://jsonlogic.com/) engine with YAML policy definitions ([`js-yaml`](https://github.com/nodeca/js-yaml))
+  * **Cryptographic Audit Chain**: SHA-256 tamper-evident Merkelized audit chain, PKCS#7 / HMAC verification, and automated secret redaction for credentials (AWS, GitHub, Bearer tokens, private keys)
+* **Frontend Portals** (Dashboard):
+  * **Framework**: React 18 / 19 with TypeScript, powered by [Vite 6](https://vitejs.dev/)
+  * **Styling**: Curated responsive design system with CSS custom properties, dark-mode cockpit styling, and live status visualizers
+  * **Northstar Works (`127.0.0.1:5173`)**: Corporate intranet simulating employee self-service, manager reviews, and the Zeo financial assistant
+  * **GuardSaaB Governance Console (`127.0.0.1:5174`)**: Agent telemetry, live audit stream, Human-in-the-Loop (HITL) approval queues, and policy simulation
+* **Data & Persistence**:
+  * **Database**: PostgreSQL 16 managed via Docker Compose (`127.0.0.1:54329`)
+  * **Client**: High-throughput connection pooling via [`pg`](https://github.com/brianc/node-postgres)
+  * **Immutability**: PostgreSQL database triggers enforcing append-only guarantees (blocking UPDATE/DELETE queries on audit records)
+* **Agent Integrations & AI**:
+  * **Codex CLI**: Native Python PreToolUse gate hook ([`scripts/guardsaab_codex_hook.py`](scripts/guardsaab_codex_hook.py))
+  * **Model Context Protocol (MCP)**: JSON-RPC tool-call inspection, intercept, and mediation
+  * **Local LLM**: Optional Ollama integration on `127.0.0.1:11434` for local conversational intelligence
+* **Testing & Tooling**:
+  * `tsx` TypeScript runtime, Docker Compose, Python `unittest`, end-to-end regression suites, and origin/CSWSH security harnesses
 
-- Node.js 20+ and npm
-- Docker Desktop with PostgreSQL support for persistent local records
-- Ollama and a downloaded model for Zeo's local language-model responses
+---
 
-```powershell
-npm install
-npm --prefix dashboard install
-npm run build
-npm run db:up
-npm run engine:local
+## Startup Instructions
+
+GuardSaaB includes unified, automated demo launchers for **Windows**, **Linux**, and **macOS**. Each launcher verifies dependencies, starts PostgreSQL via Docker, boots the GuardSaaB engine, starts both frontend workspaces, checks Ollama availability, and opens the portals in your default browser.
+
+### Prerequisites
+
+* **Node.js**: v20 or newer with `npm`
+* **Docker Desktop / Docker Engine**: Running with Docker Compose support
+* **(Optional) Ollama**: Running on `http://127.0.0.1:11434` for local LLM responses (an offline fallback is included if Ollama is not installed)
+
+---
+
+### Option 1: Automated Launchers by Operating System
+
+#### Windows
+Double-click [`start-demo.bat`](start-demo.bat) in File Explorer, or run in Command Prompt / PowerShell:
+```cmd
+.\start-demo.bat
 ```
 
-In separate terminals, start the frontends:
-
-```powershell
-npm run dev:company   # http://127.0.0.1:5173
-npm run dev:guardsaab # http://127.0.0.1:5174
+#### Linux
+Grant execution permissions once and execute [`start-demo.sh`](start-demo.sh):
+```bash
+chmod +x start-demo.sh
+./start-demo.sh
 ```
 
-The engine binds to `127.0.0.1:9000`. PostgreSQL runs on `127.0.0.1:54329`. The two clients share company records, employee requests, approvals, and the local audit store through the engine. `npm run engine` starts the memory-backed development mode; it does not provide PostgreSQL persistence.
+#### macOS
+Double-click [`start-demo.command`](start-demo.command) in Finder, or run in Terminal:
+```bash
+chmod +x start-demo.command
+./start-demo.command
+```
 
-The seven local accounts are read from the ignored `credentials.txt` file. Keep it private and do not commit it. Ollama defaults to `http://127.0.0.1:11434`; configure `GUARDSAAB_OLLAMA_URL` to use another loopback HTTP endpoint. For account and model setup, use the local operator notes in [OPERATIONS.md](OPERATIONS.md).
+#### Cross-Platform (Any OS via npm)
+You can also launch the full stack directly with npm on any platform:
+```bash
+npm run demo
+```
+
+---
+
+### Option 2: Step-by-Step Manual Startup
+
+If you prefer to start each service individually:
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   npm --prefix dashboard install
+   ```
+
+2. **Start PostgreSQL database**:
+   ```bash
+   npm run db:up
+   ```
+
+3. **Start the GuardSaaB engine**:
+   ```bash
+   npm run engine:local
+   ```
+   *Health endpoint will become available at `http://127.0.0.1:9000/health`.*
+
+4. **Start the web applications** (in separate terminal tabs):
+   ```bash
+   # Northstar Works company portal
+   npm run dev:company    # http://127.0.0.1:5173
+
+   # GuardSaaB governance cockpit
+   npm run dev:guardsaab  # http://127.0.0.1:5174
+   ```
+
+---
+
+### Demo Accounts & Credentials
+
+The application includes seven synthetic user accounts configured in `credentials.txt` (a template is available in [`credentials.example.txt`](credentials.example.txt)):
+
+| Role | Username | Display Name | Permissions |
+| :--- | :--- | :--- | :--- |
+| **Employee** | `maya.iyer` | Maya Iyer | Submit requests, view own records & ledger |
+| **Employee** | `arjun.mehta` | Arjun Mehta | Submit requests, view own records & ledger |
+| **Employee** | `leela.das` | Leela Das | Submit requests, view own records & ledger |
+| **Employee** | `kabir.shah` | Kabir Shah | Submit requests, view own records & ledger |
+| **Employee** | `priya.nair` | Priya Nair | Submit requests, view own records & ledger |
+| **HR** | `nikhil.rao` | Nikhil Rao | Review & approve requests up to ₹100,000 / quota up to ₹200,000 |
+| **CEO** | `ananya.menon` | Ananya Menon | Full executive approval, quota overrides, enterprise audit oversight |
+
+*Passwords are listed in [`credentials.example.txt`](credentials.example.txt).*
+
+---
 
 ## Walkthrough
 

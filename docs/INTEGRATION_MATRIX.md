@@ -1,11 +1,11 @@
 # Integration matrix
 
-The selected Cerberus clone includes adapters for several agents. They are available in `warden/` but have not yet been qualified as Warden-supported integrations. See its README and source for current adapter claims.
+The selected Cerberus clone includes adapters for several agents. They are available at the repository root but have not yet been qualified as GuardSaaB-supported integrations. See its README and source for current adapter claims.
 
 | Agent | Candidate upstream evidence | Proposed priority | Coverage questions before support |
 |---|---|---|---|
 | Claude Code | Reflex, Cerberus, Claude Warden expose hook approaches in source/docs | Candidate 1 for spike, pending versioned test harness | PreToolUse action types, ask/deny result contract, timeout semantics, post-tool result, file/MCP/subagent coverage, child processes, platform support |
-| Codex CLI | Installed `0.158.0-alpha.2.1`; Cerberus source has a Codex adapter. Official docs define PreToolUse denial. | Available in clone; pending Warden end-to-end qualification | Cerberus documents dashboard/socket holds because native `ask` is unavailable. Test exact version, timeout/failure handling, dashboard disconnect, and approval identity. Hook callback errors/timeouts/malformed responses may fail open at agent level. |
+| Codex CLI | Installed `0.158.0-alpha.2.1`; Cerberus source has a Codex adapter. Official docs define PreToolUse denial. | Available in clone; pending GuardSaaB end-to-end qualification | Cerberus documents dashboard/socket holds because native `ask` is unavailable. Test exact version, timeout/failure handling, dashboard disconnect, and approval identity. Hook callback errors/timeouts/malformed responses may fail open at agent level. |
 | Cursor | Cerberus adapter and hook docs | Later | Exact supported hook lifecycle and deny/ask enforcement per version |
 | Other compatible agents | None assessed | Deferred | Must provide supported interception contract and reproducible tests |
 

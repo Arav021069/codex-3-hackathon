@@ -40,6 +40,7 @@
     "THIRD_PARTY_NOTICES.md"
   ],
   "scripts": {
+    "demo": "tsx scripts/start-demo.ts",
     "engine": "tsx src/cli/index.ts engine",
     "engine:local": "tsx src/cli/index.ts engine --local-db",
     "db:up": "docker compose up -d --wait postgres",

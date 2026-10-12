@@ -22,7 +22,7 @@ export class AuditStore {
   private checkpointQueue: Promise<void> = Promise.resolve();
 
   constructor(databaseUrl: string, stateDir: string) {
-    this.pool = new Pool({ connectionString: databaseUrl, max: 8, application_name: 'warden-local-demo' });
+    this.pool = new Pool({ connectionString: databaseUrl, max: 8, application_name: 'guardsaab-local-demo' });
     this.keyFile = join(stateDir, 'audit-chain.key');
     this.checkpointFile = join(stateDir, 'audit-chain-checkpoints.jsonl');
   }
@@ -30,13 +30,17 @@ export class AuditStore {
   async initialize(): Promise<void> {
     mkdirSync(dirname(this.keyFile), { recursive: true });
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS warden_company_state (
+      ALTER TABLE IF EXISTS warden_company_state RENAME TO guardsaab_company_state;
+      ALTER TABLE IF EXISTS warden_audit_chain RENAME TO guardsaab_audit_chain;
+      ALTER TABLE IF EXISTS warden_users RENAME TO guardsaab_users;
+      ALTER TABLE IF EXISTS warden_sessions RENAME TO guardsaab_sessions;
+      CREATE TABLE IF NOT EXISTS guardsaab_company_state (
         state_key text PRIMARY KEY CHECK (state_key = 'northstar'),
         state jsonb NOT NULL,
         version bigint NOT NULL DEFAULT 1,
         updated_at timestamptz NOT NULL DEFAULT now()
       );
-      CREATE TABLE IF NOT EXISTS warden_audit_chain (
+      CREATE TABLE IF NOT EXISTS guardsaab_audit_chain (
         seq bigserial PRIMARY KEY,
         id uuid NOT NULL UNIQUE,
         recorded_at timestamptz NOT NULL,
@@ -45,27 +49,29 @@ export class AuditStore {
         previous_hash char(64) NOT NULL,
         hash char(64) NOT NULL UNIQUE
       );
-      CREATE INDEX IF NOT EXISTS warden_audit_chain_recorded_at_idx ON warden_audit_chain(recorded_at DESC);
-      ALTER TABLE warden_audit_chain DROP CONSTRAINT IF EXISTS warden_audit_chain_stream_check;
-      ALTER TABLE warden_audit_chain ADD CONSTRAINT warden_audit_chain_stream_check CHECK (stream IN ('gateway', 'company', 'auth'));
-      CREATE OR REPLACE FUNCTION warden_reject_audit_mutation() RETURNS trigger AS $$
+      CREATE INDEX IF NOT EXISTS guardsaab_audit_chain_recorded_at_idx ON guardsaab_audit_chain(recorded_at DESC);
+      ALTER TABLE guardsaab_audit_chain DROP CONSTRAINT IF EXISTS guardsaab_audit_chain_stream_check;
+      ALTER TABLE guardsaab_audit_chain DROP CONSTRAINT IF EXISTS warden_audit_chain_stream_check;
+      ALTER TABLE guardsaab_audit_chain ADD CONSTRAINT guardsaab_audit_chain_stream_check CHECK (stream IN ('gateway', 'company', 'auth'));
+      CREATE OR REPLACE FUNCTION guardsaab_reject_audit_mutation() RETURNS trigger AS $$
       BEGIN RAISE EXCEPTION 'GuardSaaB audit chain is append-only'; END;
       $$ LANGUAGE plpgsql;
-      DROP TRIGGER IF EXISTS warden_audit_immutable ON warden_audit_chain;
-      CREATE TRIGGER warden_audit_immutable BEFORE UPDATE OR DELETE ON warden_audit_chain
-        FOR EACH ROW EXECUTE FUNCTION warden_reject_audit_mutation();
-      CREATE TABLE IF NOT EXISTS warden_users (
+      DROP TRIGGER IF EXISTS warden_audit_immutable ON guardsaab_audit_chain;
+      DROP TRIGGER IF EXISTS guardsaab_audit_immutable ON guardsaab_audit_chain;
+      CREATE TRIGGER guardsaab_audit_immutable BEFORE UPDATE OR DELETE ON guardsaab_audit_chain
+        FOR EACH ROW EXECUTE FUNCTION guardsaab_reject_audit_mutation();
+      CREATE TABLE IF NOT EXISTS guardsaab_users (
         username text PRIMARY KEY, password_salt bytea NOT NULL, password_hash bytea NOT NULL,
         display_name text NOT NULL, role text NOT NULL CHECK (role IN ('Employee', 'HR', 'CEO')),
         employee_id text, active boolean NOT NULL DEFAULT true, updated_at timestamptz NOT NULL DEFAULT now()
       );
-      CREATE TABLE IF NOT EXISTS warden_sessions (
-        token_hash char(64) PRIMARY KEY, username text NOT NULL REFERENCES warden_users(username) ON DELETE CASCADE,
-        site text NOT NULL CHECK (site IN ('company', 'warden')), expires_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
+      CREATE TABLE IF NOT EXISTS guardsaab_sessions (
+        token_hash char(64) PRIMARY KEY, username text NOT NULL REFERENCES guardsaab_users(username) ON DELETE CASCADE,
+        site text NOT NULL CHECK (site IN ('company', 'guardsaab')), expires_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
       );
-      CREATE INDEX IF NOT EXISTS warden_sessions_expiry_idx ON warden_sessions(expires_at);
+      CREATE INDEX IF NOT EXISTS guardsaab_sessions_expiry_idx ON guardsaab_sessions(expires_at);
     `);
-    const count = await this.pool.query<{ count: string }>('SELECT count(*)::bigint AS count FROM warden_audit_chain');
+    const count = await this.pool.query<{ count: string }>('SELECT count(*)::bigint AS count FROM guardsaab_audit_chain');
     if (!existsSync(this.keyFile) && Number(count.rows[0]?.count ?? 0) > 0) throw new Error(`GuardSaaB audit key is missing at ${this.keyFile}; refusing to append to an unverifiable chain.`);
     if (!existsSync(this.keyFile)) writeFileSync(this.keyFile, randomBytes(32), { mode: 0o600, flag: 'wx' });
     this.key = readFileSync(this.keyFile);
@@ -94,47 +100,47 @@ export class AuditStore {
       for (const account of accounts) {
         const salt = randomBytes(16);
         const passwordHash = scryptSync(account.password, salt, 64);
-        await client.query(`INSERT INTO warden_users (username, password_salt, password_hash, display_name, role, employee_id, active, updated_at)
+        await client.query(`INSERT INTO guardsaab_users (username, password_salt, password_hash, display_name, role, employee_id, active, updated_at)
           VALUES ($1, $2, $3, $4, $5, $6, true, now())
           ON CONFLICT (username) DO UPDATE SET password_salt = EXCLUDED.password_salt, password_hash = EXCLUDED.password_hash,
           display_name = EXCLUDED.display_name, role = EXCLUDED.role, employee_id = EXCLUDED.employee_id, active = true, updated_at = now()`,
         [account.username, salt, passwordHash, account.displayName, account.role, account.employeeId ?? null]);
       }
-      await client.query('UPDATE warden_users SET active = false WHERE username <> ALL($1::text[])', [accounts.map((account) => account.username)]);
+      await client.query('UPDATE guardsaab_users SET active = false WHERE username <> ALL($1::text[])', [accounts.map((account) => account.username)]);
       await client.query('COMMIT');
     } catch (error) { await client.query('ROLLBACK').catch(() => undefined); throw error; }
     finally { client.release(); }
   }
 
-  async login(username: string, password: string, site: 'company' | 'warden'): Promise<{ token: string; user: AuthenticatedUser } | null> {
-    const { rows } = await this.pool.query<{ username: string; password_salt: Buffer; password_hash: Buffer; display_name: string; role: AuthAccount['role']; employee_id: string | null; active: boolean }>('SELECT * FROM warden_users WHERE username = $1', [username.trim().toLowerCase()]);
+  async login(username: string, password: string, site: 'company' | 'guardsaab'): Promise<{ token: string; user: AuthenticatedUser } | null> {
+    const { rows } = await this.pool.query<{ username: string; password_salt: Buffer; password_hash: Buffer; display_name: string; role: AuthAccount['role']; employee_id: string | null; active: boolean }>('SELECT * FROM guardsaab_users WHERE username = $1', [username.trim().toLowerCase()]);
     const record = rows[0];
     if (!record) { scryptSync(password, Buffer.alloc(16), 64); return null; }
     const submitted = scryptSync(password, record.password_salt, record.password_hash.length);
-    if (!record.active || !timingSafeEqual(submitted, record.password_hash) || (site === 'warden' && record.role === 'Employee')) return null;
+    if (!record.active || !timingSafeEqual(submitted, record.password_hash) || (site === 'guardsaab' && record.role === 'Employee')) return null;
     const token = randomBytes(32).toString('base64url');
-    await this.pool.query('DELETE FROM warden_sessions WHERE expires_at < now()');
-    await this.pool.query("INSERT INTO warden_sessions (token_hash, username, site, expires_at) VALUES ($1, $2, $3, now() + interval '12 hours')", [this.tokenHash(token), record.username, site]);
+    await this.pool.query('DELETE FROM guardsaab_sessions WHERE expires_at < now()');
+    await this.pool.query("INSERT INTO guardsaab_sessions (token_hash, username, site, expires_at) VALUES ($1, $2, $3, now() + interval '12 hours')", [this.tokenHash(token), record.username, site]);
     return { token, user: { username: record.username, displayName: record.display_name, role: record.role, ...(record.employee_id ? { employeeId: record.employee_id } : {}) } };
   }
 
-  async session(token: string | null, site: 'company' | 'warden'): Promise<AuthenticatedUser | null> {
+  async session(token: string | null, site: 'company' | 'guardsaab'): Promise<AuthenticatedUser | null> {
     if (!token) return null;
     const { rows } = await this.pool.query<{ username: string; display_name: string; role: AuthAccount['role']; employee_id: string | null }>(`SELECT u.username, u.display_name, u.role, u.employee_id
-      FROM warden_sessions s JOIN warden_users u ON u.username = s.username
+      FROM guardsaab_sessions s JOIN guardsaab_users u ON u.username = s.username
       WHERE s.token_hash = $1 AND s.site = $2 AND s.expires_at > now() AND u.active = true`, [this.tokenHash(token), site]);
     const record = rows[0];
     return record ? { username: record.username, displayName: record.display_name, role: record.role, ...(record.employee_id ? { employeeId: record.employee_id } : {}) } : null;
   }
 
-  async logout(token: string | null, site: 'company' | 'warden'): Promise<void> {
-    if (token) await this.pool.query('DELETE FROM warden_sessions WHERE token_hash = $1 AND site = $2', [this.tokenHash(token), site]);
+  async logout(token: string | null, site: 'company' | 'guardsaab'): Promise<void> {
+    if (token) await this.pool.query('DELETE FROM guardsaab_sessions WHERE token_hash = $1 AND site = $2', [this.tokenHash(token), site]);
   }
 
   private tokenHash(token: string): string { return createHash('sha256').update(token).digest('hex'); }
 
   async readCompanyState(): Promise<unknown | null> {
-    const { rows } = await this.pool.query<{ state: unknown }>("SELECT state FROM warden_company_state WHERE state_key = 'northstar'");
+    const { rows } = await this.pool.query<{ state: unknown }>("SELECT state FROM guardsaab_company_state WHERE state_key = 'northstar'");
     return rows[0]?.state ?? null;
   }
 
@@ -150,7 +156,7 @@ export class AuditStore {
     try {
       await client.query('BEGIN');
       await this.lockChain(client);
-      const previous = await client.query<{ state: { events?: Array<{ id?: string }> } }>("SELECT state FROM warden_company_state WHERE state_key = 'northstar' FOR UPDATE");
+      const previous = await client.query<{ state: { events?: Array<{ id?: string }> } }>("SELECT state FROM guardsaab_company_state WHERE state_key = 'northstar' FOR UPDATE");
       const nextState = update(previous.rows[0]?.state ?? null);
       if (!nextState || typeof nextState !== 'object') throw new Error('Company state update must return an object.');
       safeState = sanitizeAuditPayload(nextState);
@@ -159,9 +165,9 @@ export class AuditStore {
       for (const event of events.filter((candidate) => candidate.id && !existingIds.has(candidate.id))) {
         await this.appendWithClient(client, 'company', sanitizeAuditPayload(event));
       }
-      await client.query(`INSERT INTO warden_company_state (state_key, state, version, updated_at)
+      await client.query(`INSERT INTO guardsaab_company_state (state_key, state, version, updated_at)
         VALUES ('northstar', $1::jsonb, 1, now())
-        ON CONFLICT (state_key) DO UPDATE SET state = EXCLUDED.state, version = warden_company_state.version + 1, updated_at = now()`, [JSON.stringify(safeState)]);
+        ON CONFLICT (state_key) DO UPDATE SET state = EXCLUDED.state, version = guardsaab_company_state.version + 1, updated_at = now()`, [JSON.stringify(safeState)]);
       await client.query('COMMIT');
       if (events.some((candidate) => candidate.id && !existingIds.has(candidate.id))) await this.writeCheckpoint();
       return safeState;
@@ -202,13 +208,13 @@ export class AuditStore {
     try {
       await client.query('BEGIN');
       await this.lockChain(client);
-      const existing = await client.query('SELECT 1 FROM warden_audit_chain LIMIT 1');
+      const existing = await client.query('SELECT 1 FROM guardsaab_audit_chain LIMIT 1');
       if (existing.rowCount === 0) {
         for (const entry of entries) await this.appendWithClient(client, 'gateway', entry);
         imported = true;
       }
       await client.query('COMMIT');
-      if (imported || (this.latestCheckpoint()?.seq ?? 0) < Number((await client.query('SELECT max(seq) AS seq FROM warden_audit_chain')).rows[0]?.seq ?? 0)) await this.writeCheckpoint();
+      if (imported || (this.latestCheckpoint()?.seq ?? 0) < Number((await client.query('SELECT max(seq) AS seq FROM guardsaab_audit_chain')).rows[0]?.seq ?? 0)) await this.writeCheckpoint();
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       throw error;
@@ -216,13 +222,13 @@ export class AuditStore {
   }
 
   async recent(): Promise<AuditChainRow[]> {
-    const { rows } = await this.pool.query("SELECT seq, id, recorded_at AS \"recordedAt\", stream, payload, previous_hash AS \"previousHash\", hash FROM warden_audit_chain ORDER BY seq DESC");
+    const { rows } = await this.pool.query("SELECT seq, id, recorded_at AS \"recordedAt\", stream, payload, previous_hash AS \"previousHash\", hash FROM guardsaab_audit_chain ORDER BY seq DESC");
     return rows.map((row) => ({ ...row, seq: Number(row.seq), hash: String(row.hash).trim(), previousHash: String(row.previousHash).trim() })) as AuditChainRow[];
   }
 
   async verify(): Promise<AuditChainStatus> {
     const checkedAt = new Date().toISOString();
-    const all = await this.pool.query("SELECT seq, id, recorded_at AS \"recordedAt\", stream, payload, previous_hash AS \"previousHash\", hash FROM warden_audit_chain ORDER BY seq ASC");
+    const all = await this.pool.query("SELECT seq, id, recorded_at AS \"recordedAt\", stream, payload, previous_hash AS \"previousHash\", hash FROM guardsaab_audit_chain ORDER BY seq ASC");
     let previous = GENESIS;
     let count = 0;
     for (const raw of all.rows) {
@@ -248,13 +254,13 @@ export class AuditStore {
   private async lockChain(client: PoolClient): Promise<void> { await client.query('SELECT pg_advisory_xact_lock($1::bigint)', [LOCK_ID]); }
 
   private async appendWithClient(client: PoolClient, stream: AuditStream, payload: unknown): Promise<AuditChainRow> {
-    const latest = await client.query<{ seq: string; hash: string }>('SELECT seq, hash FROM warden_audit_chain ORDER BY seq DESC LIMIT 1');
+    const latest = await client.query<{ seq: string; hash: string }>('SELECT seq, hash FROM guardsaab_audit_chain ORDER BY seq DESC LIMIT 1');
     const previousHash = latest.rows[0]?.hash.trim() ?? GENESIS;
     const seq = Number(latest.rows[0]?.seq ?? 0) + 1;
     const id = randomUUID();
     const recordedAt = new Date().toISOString();
     const hash = this.hashRow(seq, id, recordedAt, stream, payload, previousHash);
-    const { rows } = await client.query('INSERT INTO warden_audit_chain (seq, id, recorded_at, stream, payload, previous_hash, hash) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7) RETURNING seq', [seq, id, recordedAt, stream, JSON.stringify(payload), previousHash, hash]);
+    const { rows } = await client.query('INSERT INTO guardsaab_audit_chain (seq, id, recorded_at, stream, payload, previous_hash, hash) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7) RETURNING seq', [seq, id, recordedAt, stream, JSON.stringify(payload), previousHash, hash]);
     return { seq: Number(rows[0].seq), id, recordedAt, stream, payload, previousHash, hash };
   }
 
@@ -284,7 +290,7 @@ export class AuditStore {
   }
 
   private async appendCheckpoint(): Promise<void> {
-    const { rows } = await this.pool.query('SELECT seq, hash FROM warden_audit_chain ORDER BY seq DESC LIMIT 1');
+    const { rows } = await this.pool.query('SELECT seq, hash FROM guardsaab_audit_chain ORDER BY seq DESC LIMIT 1');
     if (!rows[0]) return;
     const seq = Number(rows[0].seq);
     const hash = String(rows[0].hash).trim();

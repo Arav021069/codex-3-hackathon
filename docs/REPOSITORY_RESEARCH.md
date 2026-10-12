@@ -15,7 +15,7 @@
 
 | Feature | Evidence/source | Decision | Effort / required validation |
 |---|---|---|---|
-| Hook verdict normalization | Cerberus `src/hook/adapters.ts`; Reflex `hook.mjs`; Claude Warden `src/` | INSPIRE interface; implement Warden-owned adapter | Medium; agent version contract, malformed input, timeout, failure modes |
+| Hook verdict normalization | Cerberus `src/hook/adapters.ts`; Reflex `hook.mjs`; Claude Warden `src/` | INSPIRE interface; implement GuardSaaB-owned adapter | Medium; agent version contract, malformed input, timeout, failure modes |
 | Shell structure/effects | Claude Warden bash-parser claim; Reflex `shell.mjs` lexical parsing | REIMPLEMENT/ADAPT only after parser selection; no parser alone establishes effects | High; adversarial syntax corpus, nesting, shell variants, conservative uncertainty |
 | Deterministic policy | Cerberus `src/policy/`; Reflex `policy.mjs`/`gate.mjs`; Claude Warden rules | INSPIRE data-driven policy; own stable schema | Medium; precedence, default behavior, policy mutation/version tests |
 | Approval lifecycle | Cerberus `src/engine/server.ts`; Reflex human queue patterns | REIMPLEMENT with server-authenticated action-bound approvals | High; replay, expiry, race, changed action/context, unauthorized approver |

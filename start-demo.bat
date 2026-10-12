@@ -40,9 +40,14 @@ if errorlevel 1 (
 )
 
 if not exist "credentials.txt" (
-  echo [ERROR] credentials.txt is missing. Restore the private local account file before presenting.
-  echo         It is intentionally excluded from Git and contains the seven sign-in accounts.
-  goto :fail
+  if exist "credentials.example.txt" (
+    echo [INFO] credentials.txt was missing. Creating from credentials.example.txt...
+    copy "credentials.example.txt" "credentials.txt" >nul
+  ) else (
+    echo [ERROR] credentials.txt is missing. Restore the private local account file before presenting.
+    echo         It is intentionally excluded from Git and contains the seven sign-in accounts.
+    goto :fail
+  )
 )
 
 echo [1/5] Checking project dependencies...

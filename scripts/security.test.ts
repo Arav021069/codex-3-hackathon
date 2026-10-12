@@ -63,7 +63,7 @@ async function run() {
     // ── WebSocket handshake (CSWSH vector) ──
     check('WS from a cross-site Origin is REJECTED', (await tryWs('https://evil.example')) === 'rejected');
 
-    // Authenticate a test warden session for browser origin checks
+    // Authenticate a test guardsaab session for browser origin checks
     const loginRes = await fetch(`http://127.0.0.1:${PORT}/auth/login?site=guardsaab`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${PORT}` },

@@ -1,21 +1,21 @@
-# Warden application base
+# GuardSaaB application base
 
 ## Selection and repository layout
 
-GuardSaaB's application source is tracked in [`../warden/`](../warden/) in this repository. It was originally cloned from [Asati-git/ai-agent-firewall](https://github.com/Asati-git/ai-agent-firewall), the Cerberus local agent security gateway, at upstream commit `078120b` on 2026-10-11. The folder name and some internal package names are retained for compatibility; the product branding is GuardSaaB.
+GuardSaaB's application source is tracked in the repository root in this repository. It was originally cloned from [Asati-git/ai-agent-firewall](https://github.com/Asati-git/ai-agent-firewall), the Cerberus local agent security gateway, at upstream commit `078120b` on 2026-10-11. The folder name and some internal package names are retained for compatibility; the product branding is GuardSaaB.
 
-Cerberus was selected as the hackathon base because its existing code includes a local enforcement engine, agent adapters, policy and risk modules, approval paths, audit events, session projections, and a React dashboard. The Warden dashboard now supplies the product identity and live operations presentation. Preserve upstream notices whenever changing or distributing the inherited code.
+Cerberus was selected as the hackathon base because its existing code includes a local enforcement engine, agent adapters, policy and risk modules, approval paths, audit events, session projections, and a React dashboard. The GuardSaaB dashboard now supplies the product identity and live operations presentation. Preserve upstream notices whenever changing or distributing the inherited code.
 
 ## License and attribution
 
-The clone carries an Apache License 2.0 `LICENSE`, `NOTICE`, and `THIRD_PARTY_NOTICES.md`. Preserve these files and upstream copyright and attribution. The upstream project describes itself as an extended fork of Adirdabush1/cerberus; review the NOTICE and dependency license inventory before shipping a derivative. No external code was copied into Warden-owned parent-workspace files.
+The clone carries an Apache License 2.0 `LICENSE`, `NOTICE`, and `THIRD_PARTY_NOTICES.md`. Preserve these files and upstream copyright and attribution. The upstream project describes itself as an extended fork of Adirdabush1/cerberus; review the NOTICE and dependency license inventory before shipping a derivative. No external code was copied into GuardSaaB-owned parent-workspace files.
 
 ## Setup and checks completed
 
 - Runtime: Node.js `v26.7.0`, npm `12.0.2` (upstream requires Node.js 20 or later).
 - Root and dashboard dependencies are installed. npm skipped the `esbuild` install script under its current allow-scripts policy; builds still succeeded with the installed platform package.
 - `node bin/cerberus.mjs rules validate`: passed.
-- `npm run build`: engine and dashboard production builds passed after the Warden visual changes.
+- `npm run build`: engine and dashboard production builds passed after the GuardSaaB visual changes.
 - `npm run test:policy`: 31 passed.
 - `npm run test:adapters`: 22 passed.
 - `npm run test:audit`: 14 passed.
@@ -23,7 +23,7 @@ The clone carries an Apache License 2.0 `LICENSE`, `NOTICE`, and `THIRD_PARTY_NO
 
 ## Remaining validation before presenting
 
-- Connect the intended agent and verify one harmless allow, a policy denial, and a human-review lifecycle live in the Warden UI.
+- Connect the intended agent and verify one harmless allow, a policy denial, and a human-review lifecycle live in the GuardSaaB UI.
 - Test the exact agent versions, timeout/disconnection behavior, and approval identity. Codex uses a dashboard/socket hold because it lacks the same native `ask` response available to some adapters.
 - Dashboard approval is local and is not authenticated multi-user authorization. Loopback binding and Origin checks do not replace identity and CSRF analysis.
 - The inherited engine and adapters have not received a line-by-line release review or external penetration test. The checks above are baseline evidence, not a security certification.
@@ -31,7 +31,7 @@ The clone carries an Apache License 2.0 `LICENSE`, `NOTICE`, and `THIRD_PARTY_NO
 
 ## Next steps
 
-1. Start the engine and both dashboards using [`../warden/README.md`](../warden/README.md).
+1. Start the engine and both dashboards using [`../README.md`](../README.md).
 2. Run the deterministic demo flow and verify the visible allow, block, and review outcomes against the engine.
-3. Rehearse the Warden walkthrough and keep the upstream source and license attribution clear.
-4. Add Warden-specific regression coverage before changing inherited enforcement behavior.
+3. Rehearse the GuardSaaB walkthrough and keep the upstream source and license attribution clear.
+4. Add GuardSaaB-specific regression coverage before changing inherited enforcement behavior.

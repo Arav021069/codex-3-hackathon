@@ -29,14 +29,14 @@ function mergeSeedEmployees(state: DemoState, user: CompanyUser): DemoState {
 }
 function loadState(): DemoState {
   try {
-    const stored = localStorage.getItem(COMPANY_DEMO_KEY) ?? localStorage.getItem('warden-northstar-demo-v1');
+    const stored = localStorage.getItem(COMPANY_DEMO_KEY);
     if (stored && !localStorage.getItem(COMPANY_DEMO_KEY)) localStorage.setItem(COMPANY_DEMO_KEY, stored);
     const parsed = JSON.parse(stored ?? 'null') as DemoState | null;
     if (parsed && Array.isArray(parsed.employees) && Array.isArray(parsed.events)) {
       const known = new Set(parsed.events.map((event) => event.id));
       const migratedEvents = parsed.events.map((event) => {
-        if (event.actor?.startsWith('Zeo')) return { ...event, outcome: event.outcome?.replaceAll('WARDEN BLOCKED', 'POLICY HELD').replaceAll('GUARDSAAB BLOCKED', 'POLICY HELD') };
-        return { ...event, actor: event.actor?.replaceAll('Warden Policy P-04', 'Company policy').replaceAll('Warden Policy P-01', 'People data policy').replaceAll('Warden · Mock Ledger', 'Company mock ledger').replaceAll('Warden', 'Company policy').replaceAll('GuardSaaB Policy P-04', 'Company policy').replaceAll('GuardSaaB Policy P-01', 'People data policy').replaceAll('GuardSaaB · Mock Ledger', 'Company mock ledger').replaceAll('GuardSaaB', 'Company policy'), action: event.action?.replaceAll('Warden', 'company policy').replaceAll('GuardSaaB', 'company policy'), detail: event.detail?.replaceAll('Warden', 'company policy').replaceAll('GuardSaaB', 'company policy'), outcome: event.outcome?.replaceAll('WARDEN BLOCKED', 'POLICY HELD').replaceAll('GUARDSAAB BLOCKED', 'POLICY HELD') };
+        if (event.actor?.startsWith('Zeo')) return { ...event, outcome: event.outcome?.replaceAll('GUARDSAAB BLOCKED', 'POLICY HELD') };
+        return { ...event, actor: event.actor?.replaceAll('GuardSaaB Policy P-04', 'Company policy').replaceAll('GuardSaaB Policy P-01', 'People data policy').replaceAll('GuardSaaB · Mock Ledger', 'Company mock ledger').replaceAll('GuardSaaB', 'Company policy'), action: event.action?.replaceAll('GuardSaaB', 'company policy'), detail: event.detail?.replaceAll('GuardSaaB', 'company policy'), outcome: event.outcome?.replaceAll('GUARDSAAB BLOCKED', 'POLICY HELD') };
       });
       return { ...parsed, events: [...migratedEvents, ...seed.events.filter((event) => !known.has(event.id))] };
     }
@@ -65,7 +65,7 @@ export function CompanyWorkspace() {
   const [chatOpen, setChatOpen] = useState(() => window.innerWidth > 850);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
-  const [model, setModel] = useState(() => localStorage.getItem('guardsaab-ollama-model') || localStorage.getItem('warden-ollama-model') || 'gemma4:latest');
+  const [model, setModel] = useState(() => localStorage.getItem('guardsaab-ollama-model') || 'gemma4:latest');
   const [ollama, setOllama] = useState<'checking' | 'ready' | 'offline'>('checking');
   const [chat, setChat] = useState<ChatLine[]>([{ role: 'agent', text: 'Hi Maya. I’m Zeo, Northstar Works’ local company agent. Ask about your attendance, leave, pay, bonuses, or a company fund request.' }]);
   const [notice, setNotice] = useState('');

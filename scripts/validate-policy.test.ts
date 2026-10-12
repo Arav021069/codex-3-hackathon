@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { JsonLogicPolicyEngine } from '../src/policy/engine.js';
 import { validatePolicyFile } from '../src/cli/validate.js';
 
-const dir = mkdtempSync(join(tmpdir(), 'warden-policy-'));
+const dir = mkdtempSync(join(tmpdir(), 'guardsaab-policy-'));
 const safePath = join(dir, 'safe.yaml');
 writeFileSync(safePath, `default: HITL\nrules:\n  - id: narrow-review\n    description: Review ordinary shell execution first.\n    action: HITL\n    when:\n      and:\n        - "==": [{ var: tool }, Bash]\n        - "==": [{ var: command }, printf hello]\n  - id: broad-block\n    description: This lower priority rule must not override the first match.\n    action: BLOCK\n    when:\n      "==": [{ var: tool }, Bash]\n`);
 if (validatePolicyFile(safePath).length) throw new Error('A valid rule file was rejected.');

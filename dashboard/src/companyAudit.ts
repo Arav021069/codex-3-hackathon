@@ -9,15 +9,13 @@ export type CompanyAuditEvent = {
 };
 
 export const COMPANY_DEMO_KEY = 'guardsaab-northstar-demo-v1';
-const LEGACY_COMPANY_KEY = 'warden-northstar-demo-v1';
 export type CompanyRequestRecord = { id: string; employeeId: string; amount: number; purpose: string; status: 'PENDING_HR' | 'PENDING_CEO' | 'APPROVED' | 'REJECTED'; createdAt: number; kind?: 'FUND_TRANSFER' | 'QUOTA_INCREASE'; approvalBy?: string; transactionId?: string; quotaAdjustment?: number; duplicateOf?: string; blockedReason?: string };
 export type CompanyEmployeeRecord = { id: string; name: string; fundsRemaining: number; fundQuota?: number; account: string; manager?: string; department?: string };
 export type CompanyDemoRecord = { employees: CompanyEmployeeRecord[]; requests: CompanyRequestRecord[]; ledger: { id: string; employeeId: string; amount: number; purpose: string; time: number; requestId: string }[]; events: CompanyAuditEvent[] };
 
 export function readCompanyDemo(): CompanyDemoRecord | null {
   try {
-    const stored = localStorage.getItem(COMPANY_DEMO_KEY) ?? localStorage.getItem(LEGACY_COMPANY_KEY);
-    if (stored && !localStorage.getItem(COMPANY_DEMO_KEY)) localStorage.setItem(COMPANY_DEMO_KEY, stored);
+    const stored = localStorage.getItem(COMPANY_DEMO_KEY);
     const parsed = JSON.parse(stored ?? 'null') as CompanyDemoRecord | null;
     return parsed && Array.isArray(parsed.employees) && Array.isArray(parsed.requests) && Array.isArray(parsed.ledger) && Array.isArray(parsed.events) ? parsed : null;
   } catch { return null; }
@@ -25,7 +23,7 @@ export function readCompanyDemo(): CompanyDemoRecord | null {
 
 export function readCompanyAudit(): CompanyAuditEvent[] {
   try {
-    const stored = localStorage.getItem(COMPANY_DEMO_KEY) ?? localStorage.getItem(LEGACY_COMPANY_KEY);
+    const stored = localStorage.getItem(COMPANY_DEMO_KEY);
     const parsed = JSON.parse(stored ?? 'null') as { events?: CompanyAuditEvent[] } | null;
     return Array.isArray(parsed?.events) ? parsed.events.filter((event) => event && typeof event.action === 'string' && typeof event.time === 'number') : [];
   } catch {
