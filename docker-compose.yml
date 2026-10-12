@@ -4,18 +4,18 @@ services:
     container_name: guardsaab-local-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: warden_demo
-      POSTGRES_USER: warden
-      POSTGRES_PASSWORD: warden_demo_local_only
+      POSTGRES_DB: guardsaab_demo
+      POSTGRES_USER: guardsaab
+      POSTGRES_PASSWORD: guardsaab_demo_local_only
     ports:
       - "127.0.0.1:54329:5432"
     volumes:
-      - warden-postgres-data:/var/lib/postgresql/data
+      - guardsaab-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U warden -d warden_demo"]
+      test: ["CMD-SHELL", "pg_isready -U guardsaab -d guardsaab_demo"]
       interval: 3s
       timeout: 3s
       retries: 20
 
 volumes:
-  warden-postgres-data:
+  guardsaab-postgres-data:

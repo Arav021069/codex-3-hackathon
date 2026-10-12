@@ -22,9 +22,9 @@ const stateDir = (): string => strEnv('STATE_DIR', join(process.cwd(), '.cerberu
 
 async function runEngine(): Promise<void> {
   if (process.argv.includes('--local-db')) {
-    process.env.GUARDSAAB_DATABASE_URL ??= process.env.WARDEN_DATABASE_URL ?? 'postgres://warden:warden_demo_local_only@127.0.0.1:54329/warden_demo';
+    process.env.GUARDSAAB_DATABASE_URL ??= 'postgres://guardsaab:guardsaab_demo_local_only@127.0.0.1:54329/guardsaab_demo';
   }
-  const databaseUrl = process.env.GUARDSAAB_DATABASE_URL ?? process.env.WARDEN_DATABASE_URL;
+  const databaseUrl = process.env.GUARDSAAB_DATABASE_URL;
   const port = numEnv('ENGINE_PORT', 9000);
   const rulesPath = strEnv('RULES', join(PROJECT_ROOT, 'rules', 'default_policy.yaml'));
   const weightsPath = strEnv('RISK_WEIGHTS', join(PROJECT_ROOT, 'rules', 'risk_weights.yaml'));

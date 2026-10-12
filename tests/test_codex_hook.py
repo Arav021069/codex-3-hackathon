@@ -12,14 +12,14 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import warden_codex_hook  # noqa: E402
+import guardsaab_codex_hook  # noqa: E402
 
 
 class CodexHookTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.audit_file = Path(self.temp_dir.name) / "audit.jsonl"
-        self.env = patch.dict(os.environ, {"WARDEN_AUDIT_PATH": str(self.audit_file)})
+        self.env = patch.dict(os.environ, {"GUARDSAAB_AUDIT_PATH": str(self.audit_file)})
         self.env.start()
 
     def tearDown(self) -> None:
@@ -27,7 +27,7 @@ class CodexHookTests(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def invoke(self, command: str, tool_name: str = "Bash") -> dict | None:
-        return warden_codex_hook.handle({
+        return guardsaab_codex_hook.handle({
             "tool_name": tool_name,
             "tool_input": {"command": command},
             "session_id": "session-test",
@@ -62,13 +62,13 @@ class CodexHookTests(unittest.TestCase):
                 self.assertEqual(last_event["rule_id"], rule_id)
 
     def test_unknown_or_malformed_payload_is_denied(self) -> None:
-        response = warden_codex_hook.handle({"tool_name": "Bash", "tool_input": {}})
+        response = guardsaab_codex_hook.handle({"tool_name": "Bash", "tool_input": {}})
         self.assertEqual(response["hookSpecificOutput"]["permissionDecision"], "deny")
-        response = warden_codex_hook.handle({"tool_name": "apply_patch", "tool_input": {"command": ""}})
+        response = guardsaab_codex_hook.handle({"tool_name": "apply_patch", "tool_input": {"command": ""}})
         self.assertEqual(response["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_audit_failure_returns_explicit_deny(self) -> None:
-        with patch.object(warden_codex_hook, "_record", side_effect=OSError("disk full")):
+        with patch.object(guardsaab_codex_hook, "_record", side_effect=OSError("disk full")):
             response = self.invoke("git status")
         self.assertEqual(response["hookSpecificOutput"]["permissionDecision"], "deny")
         self.assertIn("could not persist", response["hookSpecificOutput"]["permissionDecisionReason"])
@@ -76,12 +76,12 @@ class CodexHookTests(unittest.TestCase):
     def test_command_line_emits_valid_deny_response(self) -> None:
         payload = {"tool_name": "Bash", "tool_input": {"command": "git reset --hard"}}
         result = subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "warden_codex_hook.py")],
+            [sys.executable, str(ROOT / "scripts" / "guardsaab_codex_hook.py")],
             input=json.dumps(payload),
             text=True,
             capture_output=True,
             check=False,
-            env={**os.environ, "WARDEN_AUDIT_PATH": str(self.audit_file)},
+            env={**os.environ, "GUARDSAAB_AUDIT_PATH": str(self.audit_file)},
         )
         self.assertEqual(result.returncode, 0)
         self.assertEqual(json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")

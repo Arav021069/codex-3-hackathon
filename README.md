@@ -1,29 +1,83 @@
-# GuardSaaB and Northstar Works
+# GuardSaaB
 
-GuardSaaB (Software as a Blockade) is a local-first governance console for AI agents. The repository also contains Northstar Works, a company workspace with employee, HR, and CEO views and a local AI assistant.
+**Software as a Blockade.** GuardSaaB is a local-first control plane for AI agent actions, with policy decisions, human approvals, activity logs, session review, and a separate Northstar Works company workspace for the live HR and finance scenario.
 
-Both websites, the shared engine, database setup, policies, documentation, and launch scripts are tracked together in this repository. The application source is in [`warden/`](warden/); this is a normal directory on the `main` branch, not a separate checkout or submodule. GuardSaaB is based on the Apache-2.0 licensed Cerberus AI Agent Firewall and retains its required notices in `warden/`.
+Both websites, the shared engine, database setup, policies, documentation, and launch scripts are tracked together in this repository.
 
-## Project status
+## Run locally
 
-See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for the current state, [docs/ROADMAP.md](docs/ROADMAP.md) for milestones, [docs/BASE_REPOSITORY.md](docs/BASE_REPOSITORY.md) for the cloned codebase assessment, and [docs/INTEGRATION_MATRIX.md](docs/INTEGRATION_MATRIX.md) for coverage and limitations. Initial repository research is in [docs/REPOSITORY_RESEARCH.md](docs/REPOSITORY_RESEARCH.md).
+On Windows, double-click [`start-demo.bat`](start-demo.bat) to start PostgreSQL, the engine, and both websites, wait for them to be ready, and open both pages. Keep its service windows open while presenting.
 
-## Quick start
+### Requirements
 
-On Windows, double-click [`start-demo.bat`](start-demo.bat) to start PostgreSQL, the GuardSaaB engine, and both websites. It opens the Northstar Works company site and GuardSaaB console on separate ports. Keep the service windows open while presenting. The private `warden/credentials.txt` file is required for sign-in and is intentionally excluded from Git.
+- Node.js 20+ and npm
+- Docker Desktop with PostgreSQL support for persistent local records
+- Ollama and a downloaded model for Zeo's local language-model responses
 
-For setup, accounts, and service details, follow [`warden/README.md`](warden/README.md). Run Git commands from this repository root. See [the base assessment](docs/BASE_REPOSITORY.md) for inherited components and limitations.
+```powershell
+npm install
+npm --prefix dashboard install
+npm run build
+npm run db:up
+npm run engine:local
+```
 
-Research notes and the isolated Codex hook prototype remain under `docs/`, `examples/`, and `tests/`; they are not loaded by the application.
+In separate terminals, start the frontends:
 
-## Product principles
+```powershell
+npm run dev:company   # http://127.0.0.1:5173
+npm run dev:guardsaab # http://127.0.0.1:5174
+```
 
-- Safe autonomy: routine compliant actions may proceed; mandatory prohibitions cannot be overridden by risk scoring or approval.
-- Enforcement at the supported execution boundary, not an agent-facing warning alone.
-- Explain intended, predicted, and observed effects separately.
-- Record enough linked events to reconstruct a decision lifecycle while minimizing sensitive data.
-- State integration gaps and bypass paths plainly; a hook is not an operating-system sandbox.
+The engine binds to `127.0.0.1:9000`. PostgreSQL runs on `127.0.0.1:54329`. The two clients share company records, employee requests, approvals, and the local audit store through the engine. `npm run engine` starts the memory-backed development mode; it does not provide PostgreSQL persistence.
 
-## Documentation
+The seven local accounts are read from the ignored `credentials.txt` file. Keep it private and do not commit it. Ollama defaults to `http://127.0.0.1:11434`; configure `GUARDSAAB_OLLAMA_URL` to use another loopback HTTP endpoint. For account and model setup, use the local operator notes in [OPERATIONS.md](OPERATIONS.md).
 
-Start with [the product specification](docs/PRODUCT_SPEC.md), [architecture](docs/ARCHITECTURE.md), [security model](docs/SECURITY_MODEL.md), and [known limitations](docs/KNOWN_LIMITATIONS.md). Project documents are planning evidence, not proof that the described controls exist.
+## Walkthrough
+
+1. Sign in to Northstar Works as an employee and ask Zeo for an allowed amount or a request requiring HR review.
+2. Follow the policy result in the employee request list and the GuardSaaB **Approvals** or **Activity logs** view.
+3. Sign in to GuardSaaB as HR or CEO, review the request, and approve or reject it.
+4. Confirm approved funds are added to the employee's simulated company ledger and the activity is recorded.
+5. Use the **Agents**, **Policies**, **Sessions**, and **Activity logs** areas to explore gateway governance.
+
+Use only the synthetic Northstar Works records provided for the presentation. Account credits are ledger entries; no external bank or payroll service is connected.
+
+## Policy, audit, and operations
+
+- [Policy authoring and validation](POLICY_GUIDE.md)
+- [Audit storage, export, recovery, and rotation](OPERATIONS.md)
+- [Security boundary review and tested fixes](SECURITY_REVIEW.md)
+- [Presentation walkthrough](JURY_DEMO_GUIDE.md)
+- [Change context](CONTEXT_CHANGES.md)
+
+Validate policy files and build the application:
+
+```powershell
+node bin/guardsaab.mjs rules validate
+npm run typecheck
+npm run build
+```
+
+Selected automated checks:
+
+```powershell
+npm run test:policy-validation
+npm run test:audit-sanitize
+npm run test:postgres-audit
+npm run test:regression
+```
+
+The PostgreSQL audit integration check requires a reachable database configured with `GUARDSAAB_TEST_DATABASE_URL`. The GitHub Actions workflow provisions PostgreSQL for this check.
+
+## Project documentation
+
+See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for the current state, [docs/ROADMAP.md](docs/ROADMAP.md) for milestones, [docs/BASE_REPOSITORY.md](docs/BASE_REPOSITORY.md) for the codebase assessment, and [docs/INTEGRATION_MATRIX.md](docs/INTEGRATION_MATRIX.md) for coverage and limitations.
+
+Start with [the product specification](docs/PRODUCT_SPEC.md), [architecture](docs/ARCHITECTURE.md), [security model](docs/SECURITY_MODEL.md), and [known limitations](docs/KNOWN_LIMITATIONS.md).
+
+## Project identity and notices
+
+GuardSaaB is the product name used by the interfaces, setup commands, and current project documentation. The repository includes third-party code and retains its applicable license, copyright, and notice files. See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); those legal notices are part of the source distribution.
+
+The product builds on inherited agent gateway and policy components and adds the GuardSaaB presentation, Northstar Works workspace, Zeo integration, role-scoped approval flow, PostgreSQL-backed company state, audit sanitization, and audit-chain storage. The included security review describes its limits; this prototype is not a bank, payroll provider, identity service, or production security guarantee.

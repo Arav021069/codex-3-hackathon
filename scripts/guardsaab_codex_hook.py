@@ -21,37 +21,37 @@ BLOCK_RULES: tuple[tuple[str, re.Pattern[str], str], ...] = (
     (
         "recursive_delete",
         re.compile(r"(?is)(?:^|[;&|]+\s*)(?:\S*/)?rm(?=[^;&|\n]*\s-[^\s;&|]*r)[^;&|\n]*"),
-        "Recursive deletion is blocked by the Warden pilot policy.",
+        "Recursive deletion is blocked by the GuardSaaB pilot policy.",
     ),
     (
         "powershell_recursive_delete",
         re.compile(r"(?is)\b(?:remove-item|ri|del|erase)\b(?=[^;&|\n]*\s-(?:recurse|r)\b)"),
-        "Recursive PowerShell deletion is blocked by the Warden pilot policy.",
+        "Recursive PowerShell deletion is blocked by the GuardSaaB pilot policy.",
     ),
     (
         "git_hard_reset",
         re.compile(r"(?is)\bgit\s+reset\b[^;&|\n]*\s--hard\b"),
-        "git reset --hard is blocked by the Warden pilot policy.",
+        "git reset --hard is blocked by the GuardSaaB pilot policy.",
     ),
     (
         "git_force_push",
         re.compile(r"(?is)\bgit\s+push\b[^;&|\n]*(?:\s--force(?:-with-lease)?\b|\s-f(?:\s|$))"),
-        "Force push is blocked by the Warden pilot policy.",
+        "Force push is blocked by the GuardSaaB pilot policy.",
     ),
     (
         "terraform_destroy",
         re.compile(r"(?is)\bterraform\s+destroy\b"),
-        "Terraform destroy is blocked by the Warden pilot policy.",
+        "Terraform destroy is blocked by the GuardSaaB pilot policy.",
     ),
     (
         "kubectl_delete",
         re.compile(r"(?is)\bkubectl\s+delete\b"),
-        "kubectl delete is blocked by the Warden pilot policy.",
+        "kubectl delete is blocked by the GuardSaaB pilot policy.",
     ),
     (
         "download_to_shell",
         re.compile(r"(?is)\b(?:curl|wget)\b[^\n]*\|\s*(?:ba)?sh\b"),
-        "Piping a network download to a shell is blocked by the Warden pilot policy.",
+        "Piping a network download to a shell is blocked by the GuardSaaB pilot policy.",
     ),
 )
 
@@ -64,22 +64,22 @@ DENY_RESPONSE = {
 
 
 def _audit_path() -> Path:
-    override = os.environ.get("WARDEN_AUDIT_PATH")
+    override = os.environ.get("GUARDSAAB_AUDIT_PATH") or os.environ.get("WARDEN_AUDIT_PATH")
     if override:
         return Path(override)
     local_app_data = os.environ.get("LOCALAPPDATA")
     base = Path(local_app_data) if local_app_data else Path.home() / "AppData" / "Local"
-    return base / "Warden" / "audit.jsonl"
+    return base / "GuardSaaB" / "audit.jsonl"
 
 
 def _decision(payload: dict[str, Any]) -> tuple[str, str, str, str]:
     tool_name = payload.get("tool_name")
     tool_input = payload.get("tool_input")
     if tool_name != "Bash" or not isinstance(tool_input, dict):
-        return "deny", "unsupported_input", "Warden cannot validate this hook payload; action blocked.", ""
+        return "deny", "unsupported_input", "GuardSaaB cannot validate this hook payload; action blocked.", ""
     command = tool_input.get("command")
     if not isinstance(command, str) or not command.strip():
-        return "deny", "missing_command", "Warden cannot validate a missing or empty command; action blocked.", ""
+        return "deny", "missing_command", "GuardSaaB cannot validate a missing or empty command; action blocked.", ""
     for rule_id, pattern, reason in BLOCK_RULES:
         if pattern.search(command):
             return "deny", rule_id, reason, command
@@ -120,7 +120,7 @@ def handle(payload: dict[str, Any]) -> dict[str, Any] | None:
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "deny",
-                "permissionDecisionReason": "Warden could not persist the decision record; action blocked.",
+                "permissionDecisionReason": "GuardSaaB could not persist the decision record; action blocked.",
             }
         }
     if decision == "deny":
@@ -145,7 +145,7 @@ def main() -> int:
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "deny",
-                "permissionDecisionReason": "Warden could not validate the hook request; action blocked.",
+                "permissionDecisionReason": "GuardSaaB could not validate the hook request; action blocked.",
             }
         }
     if response is not None:
