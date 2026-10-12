@@ -1,0 +1,318 @@
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { SessionsView } from './SessionsView';
+import { EVENT_META, ago, describe } from './format';
+import type { AuditEntry, SecurityViolation } from './contract';
+import { useEngine } from './useEngine';
+import { CompanyWorkspace } from './CompanyWorkspace';
+import { COMPANY_DEMO_KEY, readCompanyAudit, readCompanyDemo, resolveCompanyRequest } from './companyAudit';
+import type { CompanyAuditEvent, CompanyDemoRecord } from './companyAudit';
+import { ScenarioLab } from './ScenarioLab';
+
+type Role = 'HR' | 'CEO';
+type GuardSaaBUser = { username: string; displayName: string; role: Role };
+type Page = 'overview' | 'simulator' | 'agents' | 'approvals' | 'activity' | 'sessions';
+type AuditChainStatus = { enabled: boolean; verified: boolean; count: number; headHash: string | null; checkpointSeq: number; checkedAt: string; error?: string };
+type AuditChainEntry = { seq: number; id: string; recordedAt: string; stream: 'gateway' | 'company' | 'auth'; payload: unknown; previousHash: string; hash: string };
+type AuthEvent = { action: string; username?: string; displayName?: string; role?: string; site?: string; time: number };
+
+const AGENTS = [
+  { name: 'Finance Agent', dept: 'Finance', id: 'AG-001', status: 'Active', detail: 'Company fund requests and account credits' },
+  { name: 'HR Agent', dept: 'Human Resources', id: 'AG-002', status: 'Active', detail: 'Attendance, leave, and scoped employee records' },
+  { name: 'Zeo · Company Agent', dept: 'People Operations', id: 'AG-003', status: 'Active', detail: 'Employee lookups and guided fund requests' },
+  { name: 'IT Operations Agent', dept: 'IT Operations', id: 'AG-004', status: 'Guarded', detail: 'Command inspection and deployment workflows' },
+];
+
+function AuditRow({ entry, now }: { entry: AuditEntry; now: number }) {
+  const meta = EVENT_META[entry.event];
+  return <div className="ops-log-row"><span className="ops-event-type">{meta.label}</span><span className={`ops-decision ${entry.action === 'ALLOW' ? 'is-allowed' : entry.action === 'BLOCK' ? 'is-blocked' : ''}`}>{entry.action ?? (entry.viaHitl ? 'REVIEW' : '—')}</span><span className="ops-tool">{entry.tool ?? meta.label}</span><span className="ops-detail">{entry.ruleId ?? entry.reason}</span><time>{ago(entry.ts, now)}</time></div>;
+}
+
+function CompanyEventRow({ event, now }: { event: CompanyAuditEvent; now: number }) {
+  const status = event.outcome.toUpperCase();
+  const blocked = status.includes('BLOCK') || status.includes('REJECT');
+  const allowed = status.includes('ALLOW') || status.includes('COMPLETE') || status.includes('APPROV');
+  return <div className="ops-log-row"><span className="ops-event-type">{event.actor}</span><span className={`ops-decision ${blocked ? 'is-blocked' : allowed ? 'is-allowed' : 'is-review'}`}>{event.outcome}</span><span className="ops-tool">{event.action}{event.requestId ? ` · ${event.requestId}` : ''}</span><span className="ops-detail">{event.detail}</span><time>{ago(event.time, now)}</time></div>;
+}
+
+function SecurityApproval({ violation, now, onDecide }: { violation: SecurityViolation; now: number; onDecide: (id: string, action: 'ALLOW' | 'BLOCK') => void }) {
+  const { title, body } = describe(violation.toolCall);
+  const left = Math.max(0, Math.ceil((violation.createdAt + violation.ttlMs - now) / 1000));
+  return <article className="ops-approval-card"><div className="ops-approval-head"><span className="ops-pill">{violation.category} · {violation.signal ?? 'POLICY REVIEW'}</span><time>{left}s left</time></div><h3>{title}</h3>{body && <pre>{body}</pre>}<p>{violation.reason}</p><div className="ops-approval-actions"><button className="ops-approve" onClick={() => onDecide(violation.id, 'ALLOW')}>Allow action</button><button className="ops-reject" onClick={() => onDecide(violation.id, 'BLOCK')}>Block action</button></div></article>;
+}
+
+function CompanyApproval({ request, employeeName, role, onDecide }: { request: CompanyDemoRecord['requests'][number]; employeeName: string; role: Role; onDecide: (id: string, approve: boolean) => void }) {
+  const quotaIncrease = request.kind === 'QUOTA_INCREASE';
+  return <article className="ops-approval-card"><div className="ops-approval-head"><span className="ops-pill is-review">{request.status === 'PENDING_CEO' ? 'CEO REVIEW' : 'HR REVIEW'} · {quotaIncrease ? 'QUOTA INCREASE' : 'FUND TRANSFER'}</span><span className="ops-request-id">{request.id}</span></div><h3>{employeeName} <b>· ₹{request.amount.toLocaleString('en-IN')}</b></h3><p className="ops-purpose">{request.purpose}</p><p>{quotaIncrease ? 'Approval adds this amount to the employee’s available company fund quota. No account credit is made by a quota change.' : 'The agent attempted an account credit. Company policy held it before the ledger changed.'}</p><div className="ops-approval-actions"><button className="ops-approve" onClick={() => onDecide(request.id, true)}>{role} approve {quotaIncrease ? 'quota increase' : '& credit'}</button><button className="ops-reject" onClick={() => onDecide(request.id, false)}>Reject request</button></div></article>;
+}
+
+export default function App() {
+  const { connected, pending, audit, decide } = useEngine();
+  const [user, setUser] = useState<GuardSaaBUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [page, setPage] = useState<Page>(() => new URLSearchParams(window.location.search).has('session') ? 'sessions' : 'overview');
+  const [companyEvents, setCompanyEvents] = useState<CompanyAuditEvent[]>(readCompanyAudit);
+  const [companyDemo, setCompanyDemo] = useState<CompanyDemoRecord | null>(readCompanyDemo);
+  const [now, setNow] = useState(Date.now);
+  const [chainStatus, setChainStatus] = useState<AuditChainStatus | null>(null);
+  const [chainEntries, setChainEntries] = useState<AuditChainEntry[]>([]);
+  const [verifyingChain, setVerifyingChain] = useState(false);
+
+  const isGuardSaaBSite = window.location.port === '5174' || (window.location.port !== '5173' && window.location.pathname === '/guardsaab');
+  const role = user?.role ?? null;
+
+  useEffect(() => {
+    let active = true;
+    void fetch('/auth/session?site=guardsaab').then((response) => response.json()).then((payload: { user?: GuardSaaBUser | null }) => { if (active) setUser(payload.user ?? null); }).catch(() => undefined).finally(() => { if (active) setAuthLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const company = !isGuardSaaBSite;
+    const title = company ? 'Northstar Works — People & Finance' : role ? 'GuardSaaB — Agent Governance Console' : 'GuardSaaB — Sign in';
+    const description = company
+      ? 'Northstar Works employee services for attendance, leave, pay, company funds, and people operations.'
+      : 'Review company agent activity, approvals, policy decisions, and security events in the GuardSaaB governance console.';
+    const siteName = company ? 'Northstar Works' : 'GuardSaaB';
+    document.title = title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', description);
+    document.querySelector('meta[name="application-name"]')?.setAttribute('content', siteName);
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', description);
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', `${window.location.origin}${company ? '/' : '/guardsaab'}`);
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', title);
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', description);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', company ? '#101211' : '#071014');
+    let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!icon) { icon = document.createElement('link'); icon.rel = 'icon'; document.head.append(icon); }
+    icon.href = company ? '/northstar-icon.svg' : '/guardsaab-icon.svg';
+    icon.type = company ? 'image/svg+xml' : 'image/png';
+  }, [role, isGuardSaaBSite]);
+
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => {
+    if (page !== 'activity' || !isGuardSaaBSite || !role) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch('/audit-chain', { signal: AbortSignal.timeout(4000) });
+        if (!response.ok) throw new Error('Audit chain service is unavailable.');
+        const data = await response.json() as { status: AuditChainStatus; entries: AuditChainEntry[] };
+        if (active) { setChainStatus(data.status); setChainEntries(data.entries ?? []); }
+      } catch { if (active) setChainStatus({ enabled: false, verified: false, count: 0, headHash: null, checkpointSeq: 0, checkedAt: new Date().toISOString() }); }
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [page, isGuardSaaBSite, role]);
+  useEffect(() => {
+    if (!role || !isGuardSaaBSite) return;
+    const refresh = async () => {
+      try {
+        const response = await fetch('/company-demo-state', { signal: AbortSignal.timeout(2500) });
+        if (response.ok) {
+          const payload = await response.json() as { state?: CompanyDemoRecord | null };
+          if (payload.state) {
+            localStorage.setItem(COMPANY_DEMO_KEY, JSON.stringify(payload.state));
+            setCompanyDemo(payload.state);
+            setCompanyEvents(payload.state.events);
+            return;
+          }
+        }
+      } catch { /* show the last authorized local view if the gateway is restarting */ }
+      setCompanyEvents(readCompanyAudit()); setCompanyDemo(readCompanyDemo());
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 1200);
+    const onStorage = () => { void refresh(); };
+    window.addEventListener('storage', onStorage);
+    return () => { window.clearInterval(timer); window.removeEventListener('storage', onStorage); };
+  }, [role, isGuardSaaBSite]);
+
+  const allowedEmployeeIds = useMemo(() => new Set((companyDemo?.employees ?? [])
+    .filter((employee) => role === 'CEO' || employee.manager === 'Nikhil Rao')
+    .map((employee) => employee.id)), [companyDemo, role]);
+  const chainedCompanyEvents = chainEntries.flatMap((entry) => entry.stream === 'company' && entry.payload && typeof entry.payload === 'object' && typeof (entry.payload as CompanyAuditEvent).time === 'number' ? [{ ...(entry.payload as CompanyAuditEvent), id: String((entry.payload as CompanyAuditEvent).id ?? entry.id) }] : []);
+  const historicalCompanyEvents = [...chainedCompanyEvents, ...companyEvents].filter((event, index, all) => all.findIndex((candidate) => candidate.id === event.id) === index);
+  const authEvents = chainEntries.flatMap((entry) => {
+    if (entry.stream !== 'auth' || !entry.payload || typeof entry.payload !== 'object') return [];
+    const payload = entry.payload as AuthEvent;
+    if (typeof payload.time !== 'number') return [];
+    return [{ id: entry.id, time: payload.time, actor: payload.displayName ?? payload.username ?? 'Account', action: payload.action, detail: `${payload.site ?? 'workspace'}${payload.role ? ` · ${payload.role}` : ''}${payload.username ? ` · ${payload.username}` : ''}`, outcome: payload.action === 'sign-in denied' ? 'BLOCKED' : payload.action === 'sign-in' ? 'SIGNED IN' : 'SIGNED OUT' } satisfies CompanyAuditEvent];
+  });
+  const visibleCompanyEvents = historicalCompanyEvents.filter((event) => {
+    if (role === 'CEO') return true;
+    if (event.requestId) {
+      const request = companyDemo?.requests.find((item) => item.id === event.requestId);
+      return Boolean(request && allowedEmployeeIds.has(request.employeeId));
+    }
+    const namedEmployee = companyDemo?.employees.find((employee) => event.detail.includes(employee.name));
+    return !namedEmployee || allowedEmployeeIds.has(namedEmployee.id);
+  });
+  const companyApprovals = (companyDemo?.requests ?? []).filter((request) => request.status.startsWith('PENDING')
+    && (request.status !== 'PENDING_CEO' || role === 'CEO')
+    && allowedEmployeeIds.has(request.employeeId));
+  const totalApprovals = companyApprovals.length + pending.length;
+  const blockedCompanyEvents = visibleCompanyEvents.filter((event) => /BLOCK|REJECT|HELD/i.test(event.outcome)).length;
+  const chainedGatewayAudit = chainEntries.flatMap((entry) => {
+    const payload = entry.payload as AuditEntry | null;
+    return entry.stream === 'gateway' && payload && typeof payload.ts === 'number' && typeof payload.event === 'string' ? [payload] : [];
+  });
+  const allGatewayAudit = [...audit, ...chainedGatewayAudit].filter((entry, index, all) => all.findIndex((candidate) => candidate.ts === entry.ts && candidate.event === entry.event && candidate.requestId === entry.requestId && candidate.sessionId === entry.sessionId) === index).sort((a, b) => b.ts - a.ts);
+  const blockedGatewayEvents = allGatewayAudit.filter((event) => event.action === 'BLOCK').length;
+  const highRiskEvents = audit.filter((event) => event.event === 'injection-detected' || (event.risk?.score ?? 0) >= 70).length;
+  const signIn = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setLoginError(''); setLoggingIn(true);
+    try {
+      const response = await fetch('/auth/login?site=guardsaab', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password }) });
+      const payload = await response.json() as { user?: GuardSaaBUser; error?: string };
+      if (!response.ok || !payload.user) { setLoginError(payload.error ?? 'Unable to sign in.'); return; }
+      setUser(payload.user); setPassword(''); setPage('overview');
+    } catch { setLoginError('GuardSaaB cannot reach the account service. Try again shortly.'); }
+    finally { setLoggingIn(false); }
+  };
+  const signOut = () => { void fetch('/auth/logout?site=guardsaab', { method: 'POST' }); setUser(null); setPassword(''); setPage('overview'); };
+  const decideCompany = (requestId: string, approve: boolean) => {
+    if (!role) return;
+    const next = resolveCompanyRequest(requestId, role, approve, companyDemo);
+    setCompanyDemo(next);
+    setCompanyEvents(next?.events ?? readCompanyAudit());
+    if (next) void fetch('/company-demo-state', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(next) }).catch(() => undefined);
+  };
+  const verifyChain = async () => {
+    setVerifyingChain(true);
+    try {
+      const response = await fetch('/audit-chain/verify', { method: 'POST' });
+      const data = await response.json() as { status?: AuditChainStatus; error?: string };
+      if (data.status) setChainStatus(data.status);
+      else setChainStatus((status) => status ? { ...status, verified: false, error: data.error ?? 'Verification failed.' } : null);
+    } catch { setChainStatus((status) => status ? { ...status, verified: false, error: 'Could not reach the local audit store.' } : null); }
+    finally { setVerifyingChain(false); }
+  };
+  const exportAudit = async () => {
+    try {
+      const response = await fetch('/audit-chain/export');
+      if (!response.ok) throw new Error('Audit export is unavailable.');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'guardsaab-audit-sanitized.json'; anchor.click(); URL.revokeObjectURL(url);
+    } catch { setChainStatus((status) => status ? { ...status, error: 'Could not create the sanitized export. Check GuardSaaB sign-in and local PostgreSQL.' } : null); }
+  };
+
+  if (!isGuardSaaBSite) return <CompanyWorkspace />;
+  if (authLoading) return <main className="guardsaab-login">
+    <div className="guardsaab-login-glow" />
+    <div className="guardsaab-login-card">
+      <div className="guardsaab-login-header">
+        <img src="/guardsaab-logo.svg" alt="GuardSaaB" className="guardsaab-login-logo"/>
+      </div>
+      <div className="guardsaab-loading-state">
+        <div className="guardsaab-spinner" />
+        <p>Connecting to GuardSaaB gateway service…</p>
+      </div>
+    </div>
+  </main>;
+
+  if (!user || !role) return <main className="guardsaab-login">
+    <div className="guardsaab-login-glow" />
+    <div className="guardsaab-login-card">
+      <div className="guardsaab-login-header">
+        <img src="/guardsaab-logo.svg" alt="GuardSaaB" className="guardsaab-login-logo"/>
+        <div className="guardsaab-status-badge">
+          <i className={connected ? 'connected' : ''} />
+          <span>{connected ? 'GATEWAY CONNECTED · 127.0.0.1:9000' : 'LOCAL GATEWAY OFFLINE'}</span>
+        </div>
+      </div>
+      <div className="page-kicker">GUARDSAAB AI AGENT GOVERNANCE · CONTROL PLANE</div>
+      <h1>Sentinel Console<br/><em>authorized sign in.</em></h1>
+      <p>Secure local governance portal for tool-call interception, real-time approvals, and forensic session replay.</p>
+
+      <form className="guardsaab-login-form" onSubmit={signIn}>
+        <div className="form-group">
+          <label htmlFor="guardsaab-username">Authorized Username</label>
+          <div className="input-wrap">
+            <input id="guardsaab-username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="e.g. nikhil.rao" required/>
+          </div>
+        </div>
+        <div className="form-group">
+          <label htmlFor="guardsaab-password">Passphrase / Key</label>
+          <div className="input-wrap">
+            <input id="guardsaab-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter password" required/>
+          </div>
+        </div>
+        {loginError && <div className="guardsaab-login-error" role="alert"><span className="err-icon">⚠</span>{loginError}</div>}
+        <button className="guardsaab-submit-btn" disabled={loggingIn}>
+          {loggingIn ? (
+            <span className="btn-loading"><i className="spinner"/>Authenticating…</span>
+          ) : (
+            <span>Authorize &amp; Enter Console →</span>
+          )}
+        </button>
+      </form>
+      <div className="guardsaab-login-footer">
+        <span>Restricted access: HR and CEO accounts only</span>
+        <span>HMAC SHA-256 Audit Chain · Local-First Security</span>
+      </div>
+    </div>
+  </main>;
+
+  const nav: { id: Page; label: string; mark: string }[] = [
+    { id: 'overview', label: 'Overview', mark: '◫' },
+    { id: 'simulator', label: 'Scenario Lab', mark: '⚡' },
+    { id: 'agents', label: 'Agents', mark: '⌘' },
+    { id: 'approvals', label: 'Approvals', mark: '◷' },
+    { id: 'activity', label: 'Activity logs', mark: '≡' },
+    { id: 'sessions', label: 'Sessions', mark: '◉' },
+  ];
+  const pageLabel = nav.find((item) => item.id === page)?.label ?? 'Overview';
+  const allEvents = [
+    ...visibleCompanyEvents.map((event) => ({ time: event.time, kind: 'Company activity', actor: event.actor, action: event.action, detail: `${event.detail}${event.requestId ? ` · ${event.requestId}` : ''}`, outcome: event.outcome })),
+    ...authEvents.map((event) => ({ time: event.time, kind: 'Account activity', actor: event.actor, action: event.action, detail: event.detail, outcome: event.outcome })),
+    ...audit.map((event) => ({ time: event.ts, kind: EVENT_META[event.event].label, actor: event.tool ?? event.sessionId ?? 'Agent session', action: event.action ?? '—', detail: `${event.tool ?? ''}${event.ruleId ? ` · ${event.ruleId}` : ''}${event.reason ? ` · ${event.reason}` : ''}`, outcome: event.action ?? (event.viaHitl ? 'REVIEW' : 'INFO') })),
+  ].sort((a, b) => b.time - a.time);
+  const recentCount = 8;
+
+  return <div className="guardsaab-app dashboard-app">
+    <aside className="ops-sidebar">
+      <a className="ops-logo" href="/guardsaab" aria-label="GuardSaaB console"><img src="/guardsaab-logo.svg" alt="GuardSaaB"/></a>
+      <div className="ops-workspace"><span className="ops-workspace-mark">N</span><span><b>Northstar Works</b><small>Governance console</small></span><i>⌄</i></div>
+      <span className="ops-nav-label">WORKSPACE</span>
+      <nav className="ops-nav">{nav.map((item) => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => setPage(item.id)}><span className="ops-nav-mark">{item.mark}</span>{item.label}{item.id === 'approvals' && totalApprovals > 0 && <i>{totalApprovals}</i>}</button>)}</nav>
+      <div className="ops-sidebar-bottom"><span className="ops-nav-label">SIGNED IN</span><div className="ops-user"><span>{role.slice(0, 1)}</span><div><b>{user.displayName}</b><small>{role} · {user.username}</small></div></div><button className="ops-signout" onClick={signOut}>Sign out</button></div>
+    </aside>
+    <div className="ops-main-shell">
+      <header className="ops-topbar"><div className="ops-breadcrumb"><span>Northstar Works</span><b>/</b><strong>{pageLabel}</strong></div><div className="ops-top-actions"><span className={`ops-connection ${connected ? 'connected' : ''}`}><i/>{connected ? 'Gateway connected' : 'Gateway offline'}</span><button aria-label="Notifications" className="ops-icon-button">♧{totalApprovals > 0 && <i/>}</button><button className="ops-profile" onClick={signOut}><span>{role.slice(0,1)}</span>{role}<b>⌄</b></button></div></header>
+      <main className="ops-content">
+        {page === 'overview' && <>
+          <div className="ops-page-heading"><div><span className="ops-eyebrow">MONDAY, {new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}).toUpperCase()}</span><h1>Governance overview</h1><p>Monitor agent activity, review requests, and follow company policy decisions.</p></div><span className="ops-live-badge"><i/>LIVE WORKSPACE</span></div>
+          <section className="ops-metrics"><article><span>Registered agents</span><strong>{String(AGENTS.length).padStart(2,'0')}</strong><small>Across departments</small></article><article><span>Pending approvals</span><strong>{String(totalApprovals).padStart(2,'0')}</strong><small>{totalApprovals ? 'Needs your review' : 'Review queue clear'}</small></article><article><span>Blocked actions</span><strong>{String(blockedCompanyEvents + blockedGatewayEvents).padStart(2,'0')}</strong><small>Stopped by policy</small></article><article><span>High-risk events</span><strong>{String(highRiskEvents).padStart(2,'0')}</strong><small>{highRiskEvents ? 'Requires attention' : 'No critical alerts'}</small></article></section>
+          <section className="ops-overview-grid"><div className="ops-panel ops-recent-panel"><div className="ops-panel-heading"><div><span>GOVERNANCE FEED</span><h2>Recent activity</h2></div><button onClick={() => setPage('activity')}>View all logs <b>→</b></button></div>{allEvents.length ? allEvents.slice(0,recentCount).map((event,index)=><div className="ops-feed-row" key={`${event.time}-${index}`}><i className={`ops-feed-dot ${/BLOCK|REJECT/i.test(event.outcome)?'blocked':/REVIEW|HELD|PENDING/i.test(event.outcome)?'review':''}`}/><div><b>{event.actor} <span>· {event.action}</span></b><p>{event.detail}</p></div><time>{ago(event.time,now)}</time><em className={/BLOCK|REJECT/i.test(event.outcome)?'blocked':/REVIEW|HELD|PENDING/i.test(event.outcome)?'review':''}>{event.outcome}</em></div>):<div className="ops-empty">Agent and company events will appear here.</div>}</div>
+            <div className="ops-side-stack"><div className="ops-panel ops-agent-summary"><div className="ops-panel-heading"><div><span>FLEET STATUS</span><h2>Agent registry</h2></div><button onClick={() => setPage('agents')}>All agents →</button></div>{AGENTS.map((agent)=><div className="ops-mini-agent" key={agent.id}><span className="ops-agent-glyph">{agent.name.slice(0,1)}</span><div><b>{agent.name}</b><small>{agent.dept}</small></div><i className={agent.status === 'Guarded'?'guarded':''}>{agent.status}</i></div>)}</div><div className="ops-policy-callout"><span>POLICY MONITOR</span><b>Funds stay held<br/>until review.</b><p>Over ₹50,000 goes to HR. Requests above ₹1,00,000 escalate to CEO.</p><button onClick={() => setPage('approvals')}>Open approvals <b>→</b></button></div><div className="ops-policy-callout lab-callout"><span>THREAT SIMULATOR</span><b>Test Agent Security<br/>Live On Screen.</b><p>Fire prompt injections, malicious packages, or HITL holds.</p><button onClick={() => setPage('simulator')}>Open Scenario Lab ⚡ <b>→</b></button></div></div></section>
+        </>}
+        {page === 'simulator' && (
+          <ScenarioLab
+            connected={connected}
+            onNavigateToApprovals={() => setPage('approvals')}
+            onNavigateToActivity={() => setPage('activity')}
+            pendingCount={totalApprovals}
+            role={role}
+          />
+        )}
+        {page === 'agents' && <><div className="ops-page-heading"><div><span className="ops-eyebrow">WORKSPACE DIRECTORY</span><h1>Agent registry</h1><p>Registered assistants and their current governance status.</p></div><span className="ops-count-pill">{AGENTS.length} agents</span></div><section className="ops-panel"><div className="ops-table-head"><span>AGENT</span><span>DEPARTMENT</span><span>AGENT ID</span><span>STATUS</span></div>{AGENTS.map((agent)=><div className="ops-agent-row" key={agent.id}><div className="ops-agent-name"><span className="ops-agent-glyph">{agent.name.slice(0,1)}</span><span><b>{agent.name}</b><small>{agent.detail}</small></span></div><span>{agent.dept}</span><code>{agent.id}</code><span className={`ops-status ${agent.status === 'Guarded'?'guarded':''}`}><i/>{agent.status}</span></div>)}</section></>}
+        {page === 'approvals' && <><div className="ops-page-heading"><div><span className="ops-eyebrow">HUMAN REVIEW QUEUE</span><h1>Approvals</h1><p>Review company fund requests and sensitive agent actions before execution.</p></div><span className="ops-count-pill">{totalApprovals} pending</span></div>{companyApprovals.length + pending.length === 0 ? <section className="ops-empty-panel"><span>✓</span><h2>Nothing needs review</h2><p>Requests above the automatic policy limits will appear in this queue.</p></section> : <div className="ops-approval-grid">{companyApprovals.map((request)=><CompanyApproval key={request.id} request={request} employeeName={companyDemo?.employees.find((employee)=>employee.id===request.employeeId)?.name ?? request.employeeId} role={role} onDecide={decideCompany}/ >)}{pending.map((violation)=><SecurityApproval key={violation.id} violation={violation} now={now} onDecide={decide}/>)}</div>}</>}
+        {page === 'activity' && <><div className="ops-page-heading"><div><span className="ops-eyebrow">AUDIT &amp; POLICY EVENTS</span><h1>Activity logs</h1><p>Company workflows, account access, and every event received by the local agent gateway.</p></div><span className="ops-live-badge"><i/>{connected ? 'STREAMING' : 'OFFLINE'}</span></div>
+          <section className={`ops-panel ops-chain-panel ${chainStatus?.enabled ? (chainStatus.verified ? 'is-verified' : 'is-invalid') : 'is-disabled'}`}>
+            <div className="ops-chain-summary"><div><span className="ops-eyebrow">LOCAL POSTGRESQL · HMAC SHA-256</span><h2>{chainStatus?.enabled ? chainStatus.verified ? 'Audit chain verified' : 'Integrity check failed' : 'Audit chain unavailable'}</h2><p>{chainStatus?.enabled ? `${chainStatus.count.toLocaleString()} chained events · local checkpoint ${chainStatus.checkpointSeq.toLocaleString()}` : 'Start the local PostgreSQL service and run the engine with npm run engine:local to persist and verify logs.'}</p>{chainStatus?.error && <p className="ops-chain-error">{chainStatus.error}</p>}</div><div className="ops-chain-actions"><button disabled={!chainStatus?.enabled || verifyingChain} onClick={() => void verifyChain()}>{verifyingChain ? 'Verifying…' : 'Verify chain'}</button><button disabled={!chainStatus?.enabled} onClick={() => void exportAudit()}>Export sanitized log</button></div></div>
+            {chainStatus?.enabled && <div className="ops-chain-meta"><span>HEAD HASH</span><code title={chainStatus.headHash ?? ''}>{chainStatus.headHash ?? 'No records yet'}</code><span>LAST CHECKED</span><time>{new Date(chainStatus.checkedAt).toLocaleString('en-IN')}</time></div>}
+            {chainStatus?.enabled && <div className="ops-chain-entries">{chainEntries.slice(0,5).map((entry)=><div key={entry.id}><b>#{entry.seq} · {entry.stream === 'gateway' ? 'Gateway event' : entry.stream === 'auth' ? 'Account activity' : 'Company workflow'}</b><code>{entry.hash.slice(0,22)}…</code><time>{new Date(entry.recordedAt).toLocaleString('en-IN')}</time></div>)}</div>}
+          </section>
+          <section className="ops-panel ops-activity-panel"><div className="ops-activity-head"><span>EVENT / ACTOR</span><span>DECISION</span><span>ACTION</span><span>DETAIL</span><span>WHEN</span></div>{allGatewayAudit.map((event,index)=><AuditRow key={`${event.ts}-${event.requestId ?? event.sessionId}-${index}`} entry={event} now={now}/>)}{visibleCompanyEvents.map((event)=><CompanyEventRow key={event.id} event={event} now={now}/>)}{authEvents.map((event)=><CompanyEventRow key={event.id} event={event} now={now}/>)}{allGatewayAudit.length===0&&visibleCompanyEvents.length===0&&authEvents.length===0&&<div className="ops-empty">No activity has been recorded yet.</div>}</section></>}
+        {page === 'sessions' && <><div className="ops-page-heading"><div><span className="ops-eyebrow">INVESTIGATION</span><h1>Agent sessions</h1><p>Follow an agent run from its first tool call to its final decision.</p></div></div><SessionsView audit={audit} now={now} initialSession={new URLSearchParams(window.location.search).get('session') ?? undefined}/></>}
+      </main>
+      <footer className="ops-footer"><span>GUARDSAAB GOVERNANCE · NORTHSTAR WORKS</span><span>{connected ? 'LOCAL GATEWAY CONNECTED' : 'LOCAL GATEWAY DISCONNECTED'}</span></footer>
+    </div>
+  </div>;
+}
