@@ -1,14 +1,14 @@
 # Project state
 
-**As of:** 2026-10-11
+**As of:** 2026-10-12
 
 ## Current implementation
 
-The workspace contains Warden planning documents, an isolated Codex hook prototype, and the selected app in `warden/`. The app is an upstream Cerberus clone with preserved Git history and legal notices; its dashboard now uses Warden branding and a custom sentinel mark. The engine builds and selected policy, adapter, and audit suites pass. The inherited engine has not been fully reviewed or qualified for production.
+The repository contains project notes, an isolated Codex hook prototype, and the GuardSaaB application in `warden/`. The app is based on the upstream Cerberus project and retains its legal notices; its dashboards carry GuardSaaB and Northstar Works branding. The inherited engine has not been fully reviewed or qualified for production.
 
 ## Selected application base
 
-`warden/` is a separate Git clone of `Asati-git/ai-agent-firewall` at `078120b` (Apache-2.0; retain LICENSE, NOTICE, and third-party notices). Root and dashboard dependencies installed, the build succeeded, 67 selected upstream checks passed, and a local API smoke check succeeded. Details and limitations are in [BASE_REPOSITORY.md](BASE_REPOSITORY.md).
+`warden/` is tracked as a normal directory in this repository. It originated from `Asati-git/ai-agent-firewall` at `078120b` (Apache-2.0; retain LICENSE, NOTICE, and third-party notices). Details and limitations are in [BASE_REPOSITORY.md](BASE_REPOSITORY.md).
 
 ## Research snapshot
 

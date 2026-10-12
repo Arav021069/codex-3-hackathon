@@ -1,8 +1,8 @@
-# Warden
+# GuardSaaB and Northstar Works
 
-Warden is a local-first control layer for coding agents. It evaluates supported actions before execution, applies policy and approval decisions, and records outcomes for review.
+GuardSaaB (Software as a Blockade) is a local-first governance console for AI agents. The repository also contains Northstar Works, a company workspace with employee, HR, and CEO views and a local AI assistant.
 
-The application lives in the separate Git clone at [`warden/`](warden/). It is based on the Apache-2.0 licensed Cerberus AI Agent Firewall, which provides the interception engine, agent adapters, policies, approval paths, audit timelines, and dashboard. Its upstream Git history and legal notices are retained; run Git commands for the application from that directory. Warden research and product planning remain in this parent workspace.
+Both websites, the shared engine, database setup, policies, documentation, and launch scripts are tracked together in this repository. The application source is in [`warden/`](warden/); this is a normal directory on the `main` branch, not a separate checkout or submodule. GuardSaaB is based on the Apache-2.0 licensed Cerberus AI Agent Firewall and retains its required notices in `warden/`.
 
 ## Project status
 
@@ -10,11 +10,11 @@ See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for the current state, [docs/
 
 ## Quick start
 
-On Windows, double-click [`start-demo.bat`](start-demo.bat) to start PostgreSQL, the GuardSaaB engine, and both websites, then open the company and governance pages. Keep the service windows open during the presentation. The private `warden/credentials.txt` file is required for sign-in and is not included in Git.
+On Windows, double-click [`start-demo.bat`](start-demo.bat) to start PostgreSQL, the GuardSaaB engine, and both websites. It opens the Northstar Works company site and GuardSaaB console on separate ports. Keep the service windows open while presenting. The private `warden/credentials.txt` file is required for sign-in and is intentionally excluded from Git.
 
-For the app, follow [`warden/README.md`](warden/README.md). In this environment its dependencies are installed, the engine and dashboard builds passed, and the policy, adapter, and audit suites passed. See [the base assessment](docs/BASE_REPOSITORY.md) for exact commands and limitations.
+For setup, accounts, and service details, follow [`warden/README.md`](warden/README.md). Run Git commands from this repository root. See [the base assessment](docs/BASE_REPOSITORY.md) for inherited components and limitations.
 
-The parent workspace also retains an isolated Codex hook prototype and tests as research artifacts; it is not the selected app or auto-loaded.
+Research notes and the isolated Codex hook prototype remain under `docs/`, `examples/`, and `tests/`; they are not loaded by the application.
 
 ## Product principles
 

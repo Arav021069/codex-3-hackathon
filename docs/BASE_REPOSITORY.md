@@ -2,7 +2,7 @@
 
 ## Selection and repository layout
 
-Warden's application is in [`../warden/`](../warden/), a separate clone of [Asati-git/ai-agent-firewall](https://github.com/Asati-git/ai-agent-firewall), the Cerberus local agent security gateway. The folder name and dashboard brand are Warden. The clone retains its upstream Git history and internal package/CLI names; these identify the source project and are not Warden product branding. It was cloned from `main` at `078120b` on 2026-10-11.
+GuardSaaB's application source is tracked in [`../warden/`](../warden/) in this repository. It was originally cloned from [Asati-git/ai-agent-firewall](https://github.com/Asati-git/ai-agent-firewall), the Cerberus local agent security gateway, at upstream commit `078120b` on 2026-10-11. The folder name and some internal package names are retained for compatibility; the product branding is GuardSaaB.
 
 Cerberus was selected as the hackathon base because its existing code includes a local enforcement engine, agent adapters, policy and risk modules, approval paths, audit events, session projections, and a React dashboard. The Warden dashboard now supplies the product identity and live operations presentation. Preserve upstream notices whenever changing or distributing the inherited code.
 
@@ -31,7 +31,7 @@ The clone carries an Apache License 2.0 `LICENSE`, `NOTICE`, and `THIRD_PARTY_NO
 
 ## Next steps
 
-1. Start the gateway and Warden dashboard using `warden/README.md`.
+1. Start the engine and both dashboards using [`../warden/README.md`](../warden/README.md).
 2. Run the deterministic demo flow and verify the visible allow, block, and review outcomes against the engine.
 3. Rehearse the Warden walkthrough and keep the upstream source and license attribution clear.
 4. Add Warden-specific regression coverage before changing inherited enforcement behavior.

@@ -1,6 +1,6 @@
 # Security model
 
-**Status:** Implemented local controls with explicit same-machine trust boundaries. This document describes the checkout, not a penetration-test result or production approval. The code-level review is in [`warden/SECURITY_REVIEW.md`](../warden/SECURITY_REVIEW.md); operating procedures are in [`warden/OPERATIONS.md`](../warden/OPERATIONS.md).
+**Status:** Implemented local controls with explicit same-machine trust boundaries. This document describes the application, not a penetration-test result or production approval. The code-level review is in [`warden/SECURITY_REVIEW.md`](../warden/SECURITY_REVIEW.md); operating procedures are in [`warden/OPERATIONS.md`](../warden/OPERATIONS.md).
 
 ## Assets and threats
 
@@ -11,7 +11,7 @@ Protected assets include source and developer data, credentials, agent capabilit
 - The engine and optional egress proxy bind to `127.0.0.1`. Browser endpoints use site-specific sessions, SameSite/HttpOnly cookies, loopback Origin checks, and login throttling.
 - Agent hooks and the egress proxy fail closed by default; explicit `AG_FAIL_OPEN=1` and `FAIL_OPEN=1` overrides permit fail-open behavior.
 - Authenticated company state is scoped by role. The server ignores employee-submitted salary, attendance, quota, account, and ledger edits; it validates fund-request identity and tier routing and derives credits on approval. PostgreSQL initialization failure stops configured DB mode instead of changing persistence mode silently.
-- Rule YAML can be validated without starting the engine using `node bin/cerberus.mjs rules validate --file <path>`. First-match priority is documented in `warden/POLICY_GUIDE.md`.
+- Rule YAML can be validated without starting the engine using `node warden/bin/guardsaab.mjs rules validate --file <path>`. First-match priority is documented in `warden/POLICY_GUIDE.md`.
 - Audit payloads are sanitized before persistence and again at export. PostgreSQL audit rows use HMAC-linked records, mutation-rejection triggers, and local signed checkpoints.
 - Engine and proxy CLI processes handle SIGINT/SIGTERM and close active listeners; health is reported at `/health`.
 

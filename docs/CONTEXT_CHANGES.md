@@ -1,15 +1,15 @@
-# Warden repository context
+# GuardSaaB repository context
 
 Updated 12 October 2026. This file supersedes earlier feature and test-count claims below the current checkout; read implementation and test results as the source of truth.
 
 ## Repositories
 
-The selected application is the separate Git clone in [`../warden/`](../warden/). It is based on the Apache-2.0 licensed Cerberus AI Agent Firewall. Upstream attribution and notices remain in that repository. Warden-specific product changes and verified limits are documented in [`../warden/README.md`](../warden/README.md), [`../warden/SECURITY_REVIEW.md`](../warden/SECURITY_REVIEW.md), and [`../warden/OPERATIONS.md`](../warden/OPERATIONS.md).
+The application is tracked in [`../warden/`](../warden/) as part of this repository. GuardSaaB is based on the Apache-2.0 licensed Cerberus AI Agent Firewall. Upstream attribution and notices are retained there. Product behavior and verified limits are documented in [`../warden/README.md`](../warden/README.md), [`../warden/SECURITY_REVIEW.md`](../warden/SECURITY_REVIEW.md), and [`../warden/OPERATIONS.md`](../warden/OPERATIONS.md).
 
 ## Current application capabilities
 
-- Distinct Northstar Works employee/HR/CEO company workspace and Warden HR/CEO governance interface.
-- Local username/password accounts for five employees, one HR account, and one CEO account; local passwords are in the Git-ignored `warden/credentials.txt` file.
+- Distinct Northstar Works employee/HR/CEO company workspace and GuardSaaB HR/CEO governance interface.
+- Local username/password accounts for five employees, one HR account, and one CEO account; local passwords are in the ignored `warden/credentials.txt` file.
 - Local Ollama bridge for Zeo and company fund requests, with rule-based company answers available when Ollama is unavailable.
 - PostgreSQL-backed company state, sessions, and audit rows in local mode. If configured PostgreSQL cannot initialize, the engine refuses startup rather than silently choosing volatile state.
 - Server-side company state merge protects salary, attendance, quota, account, and ledger fields from employee payloads. Requests are identity/tier checked, and approvals derive account credits on the server. Client-provided activity descriptions remain non-authoritative.
@@ -22,7 +22,7 @@ This remains a local, single-operator prototype. Loopback is not process authent
 
 ## Verification
 
-The current selected build and regression checks are run from `warden/`:
+The application build and regression checks are run from `warden/` within this repository:
 
 ```powershell
 npm run build
