@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GuardSaaB — Interactive Architecture Flowchart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================================================
+       THEME VARIABLES & DESIGN SYSTEM
+       Light and Dark modes with WCAG AA compliance and classDef color families
+       ========================================================================== */
+    :root {
+      --color-scheme: dark;
+      --bg-base: #0a0d14;
+      --bg-surface: #111520;
+      --bg-surface-elevated: #171d2b;
+      --bg-surface-sunken: #06080d;
+      --border-subtle: #1e2636;
+      --border-strong: #2c384e;
+      --border-focus: #4b5d7e;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-faint: #64748b;
+
+      /* Mermaid classDef Tone Families */
+      --tone-blue-bg: #1e293b;
+      --tone-blue-border: #3b82f6;
+      --tone-blue-text: #93c5fd;
+      --tone-blue-glow: rgba(59, 130, 246, 0.2);
+
+      --tone-amber-bg: #291b10;
+      --tone-amber-border: #f59e0b;
+      --tone-amber-text: #fcd34d;
+      --tone-amber-glow: rgba(245, 158, 11, 0.2);
+
+      --tone-mint-bg: #0f291e;
+      --tone-mint-border: #10b981;
+      --tone-mint-text: #6ee7b7;
+      --tone-mint-glow: rgba(16, 185, 129, 0.2);
+
+      --tone-rose-bg: #2a121d;
+      --tone-rose-border: #f43f5e;
+      --tone-rose-text: #fda4af;
+      --tone-rose-glow: rgba(244, 63, 94, 0.2);
+
+      --tone-indigo-bg: #1e1b4b;
+      --tone-indigo-border: #6366f1;
+      --tone-indigo-text: #a5b4fc;
+      --tone-indigo-glow: rgba(99, 102, 241, 0.2);
+
+      --edge-primary: #64748b;
+      --edge-active: #38bdf8;
+      --edge-active-glow: rgba(56, 189, 248, 0.5);
+
+      --font-display: 'Space Grotesk', -apple-system, sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-full: 9999px;
+    }
+
+    [data-theme="light"] {
+      --color-scheme: light;
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f1f5f9;
+      --bg-surface-sunken: #e2e8f0;
+      --border-subtle: #cbd5e1;
+      --border-strong: #94a3b8;
+      --border-focus: #475569;
+
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-faint: #64748b;
+
+      --tone-blue-bg: #dbeafe;
+      --tone-blue-border: #2563eb;
+      --tone-blue-text: #1e3a8a;
+      --tone-blue-glow: rgba(37, 99, 235, 0.15);
+
+      --tone-amber-bg: #fef3c7;
+      --tone-amber-border: #d97706;
+      --tone-amber-text: #78350f;
+      --tone-amber-glow: rgba(217, 119, 6, 0.15);
+
+      --tone-mint-bg: #dcfce7;
+      --tone-mint-border: #16a34a;
+      --tone-mint-text: #14532d;
+      --tone-mint-glow: rgba(22, 163, 74, 0.15);
+
+      --tone-rose-bg: #ffe4e6;
+      --tone-rose-border: #e11d48;
+      --tone-rose-text: #881337;
+      --tone-rose-glow: rgba(225, 29, 72, 0.15);
+
+      --tone-indigo-bg: #e0e7ff;
+      --tone-indigo-border: #4f46e5;
+      --tone-indigo-text: #312e81;
+      --tone-indigo-glow: rgba(79, 70, 229, 0.15);
+
+      --edge-primary: #94a3b8;
+      --edge-active: #0284c7;
+      --edge-active-glow: rgba(2, 132, 199, 0.3);
+    }
+
+    /* Reset & Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Header & Control Bar */
+    .app-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 30;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 12px;
+      padding: 6px 28px 6px 10px;
+      width: 180px;
+      transition: width 180ms ease, border-color 180ms ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      width: 240px;
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 6px;
+      background: none;
+      border: none;
+      color: var(--text-faint);
+      cursor: pointer;
+      font-size: 12px;
+      display: none;
+    }
+
+    .search-clear.visible { display: block; }
+
+    /* Group Toggle Pills */
+    .filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-sunken);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 140ms ease;
+    }
+
+    .pill-btn:hover {
+      color: var(--text-main);
+      border-color: var(--border-strong);
+    }
+
+    .pill-btn.active {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Trace Controller */
+    .trace-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 3px 6px;
+    }
+
+    .trace-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 120ms ease;
+    }
+
+    .trace-btn:hover:not(:disabled) {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+    }
+
+    .trace-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .trace-step-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--tone-amber-text);
+      font-weight: 700;
+      padding: 0 4px;
+    }
+
+    /* View Controls (Zoom, Fit, Theme) */
+    .view-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: all 140ms ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border-color: var(--border-strong);
+    }
+
+    /* Diagram Stage & Canvas */
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      background-image: 
+        radial-gradient(var(--border-subtle) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    .canvas-container:active {
+      cursor: grabbing;
+    }
+
+    svg#flow-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      transform-origin: 0 0;
+    }
+
+    /* SVG Elements Styling */
+    .subgraph-rect {
+      fill: var(--bg-surface);
+      fill-opacity: 0.65;
+      stroke-width: 1px;
+      rx: 10px;
+      ry: 10px;
+      transition: fill-opacity 200ms ease, stroke 200ms ease;
+    }
+
+    .subgraph-header-bar {
+      cursor: pointer;
+    }
+
+    .subgraph-label {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      fill: var(--text-main);
+      user-select: none;
+    }
+
+    .subgraph-collapse-icon {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      fill: var(--text-faint);
+      cursor: pointer;
+    }
+
+    /* Node Card Elements */
+    .node-group {
+      cursor: pointer;
+      transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+    }
+
+    .node-bg {
+      rx: 8px;
+      ry: 8px;
+      stroke-width: 1.5px;
+      transition: stroke 160ms ease, fill 160ms ease, filter 160ms ease;
+    }
+
+    .node-title-text {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      fill: var(--text-main);
+      pointer-events: none;
+    }
+
+    .node-sub-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      fill: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* Circular and Cylinder Nodes */
+    .node-circle-bg {
+      stroke-width: 2px;
+      transition: all 160ms ease;
+    }
+
+    .node-cylinder-path {
+      stroke-width: 1.5px;
+      transition: all 160ms ease;
+    }
+
+    /* Pulse animations for entrypoints & datastore */
+    @keyframes subtle-pulse {
+      0%, 100% { filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0)); }
+      50% { filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.35)); }
+    }
+
+    @keyframes datastore-pulse {
+      0%, 100% { filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0)); }
+      50% { filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.35)); }
+    }
+
+    .pulse-blue { animation: subtle-pulse 3s infinite ease-in-out; }
+    .pulse-mint { animation: datastore-pulse 3s infinite ease-in-out; }
+
+    /* Edge Paths & Animations */
+    .edge-path {
+      fill: none;
+      stroke: var(--edge-primary);
+      stroke-width: 1.5px;
+      stroke-linecap: round;
+      transition: stroke 180ms ease, stroke-width 180ms ease, opacity 200ms ease;
+    }
+
+    .edge-path.dashed {
+      stroke-dasharray: 6, 6;
+      stroke-width: 1.25px;
+    }
+
+    /* Flow Animation on Edges */
+    @keyframes flow-forward {
+      to { stroke-dashoffset: -24; }
+    }
+
+    .edge-animated {
+      stroke-dasharray: 6, 6;
+      animation: flow-forward 1.2s linear infinite;
+    }
+
+    .edge-animated.slow {
+      animation: flow-forward 2.4s linear infinite;
+      opacity: 0.7;
+    }
+
+    .edge-label-bg {
+      fill: var(--bg-surface-sunken);
+      rx: 3px;
+      ry: 3px;
+      stroke: var(--border-subtle);
+      stroke-width: 1px;
+    }
+
+    .edge-label-text {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 500;
+      fill: var(--text-muted);
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+
+    /* Interactive States (Hover & Dimming) */
+    .is-dimmed {
+      opacity: 0.18 !important;
+    }
+
+    .is-highlighted .node-bg,
+    .is-highlighted .node-circle-bg,
+    .is-highlighted .node-cylinder-path {
+      stroke-width: 2.5px !important;
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.45));
+    }
+
+    .is-highlighted-edge {
+      stroke: var(--edge-active) !important;
+      stroke-width: 2.5px !important;
+      filter: drop-shadow(0 0 6px var(--edge-active-glow));
+      z-index: 20;
+    }
+
+    .is-trace-active {
+      stroke-width: 3px !important;
+      filter: drop-shadow(0 0 14px var(--tone-amber-glow)) !important;
+      animation: trace-glow 1s infinite alternate ease-in-out !important;
+    }
+
+    @keyframes trace-glow {
+      from { transform: scale(1); }
+      to { transform: scale(1.03); }
+    }
+
+    /* Side Inspector Drawer */
+    .side-drawer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 380px;
+      height: 100%;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-subtle);
+      box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+      transform: translateX(100%);
+      transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .side-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--bg-surface-elevated);
+    }
+
+    .drawer-body {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .drawer-section-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+      margin-bottom: 8px;
+    }
+
+    .drawer-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      transition: all 140ms ease;
+    }
+
+    .drawer-link-btn:hover {
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-strong);
+      color: var(--edge-active);
+    }
+
+    .io-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .io-item {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 10px;
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .io-item:hover {
+      border-color: var(--border-strong);
+      color: var(--text-main);
+    }
+
+    /* Floating Tooltip */
+    .diagram-tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 11px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 120ms ease;
+      max-width: 260px;
+    }
+
+    .diagram-tooltip.visible {
+      opacity: 1;
+    }
+
+    /* Legend Overlay */
+    .legend-card {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 20;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    .legend-line {
+      width: 20px;
+      height: 2px;
+      background: var(--edge-primary);
+    }
+
+    .legend-line.dashed {
+      border-top: 2px dashed var(--edge-primary);
+      background: none;
+    }
+
+    /* Trace Step Caption Banner */
+    .trace-banner {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--tone-amber-border);
+      border-radius: var(--radius-md);
+      padding: 10px 20px;
+      font-size: 12px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      z-index: 25;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      max-width: 600px;
+    }
+
+    .trace-banner.visible { display: flex; }
+
+    /* Accessibility Text Alternative Dialog / Drawer */
+    .a11y-panel {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(2px);
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .a11y-panel.open { display: flex; }
+
+    .a11y-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 640px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .a11y-content {
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .a11y-content h3 { color: var(--text-main); margin: 16px 0 6px; }
+    .a11y-content ul { padding-left: 20px; margin-bottom: 12px; }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      .edge-animated, .edge-animated.slow { animation: none !important; }
+      .pulse-blue, .pulse-mint, .is-trace-active { animation: none !important; }
+      * { transition-duration: 0.01ms !important; }
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .app-header { padding: 8px 12px; gap: 8px; }
+      .filter-pills { display: none; }
+      .side-drawer { width: 100%; }
+      .legend-card { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- APP HEADER / CONTROLS -->
+  <header class="app-header" role="toolbar" aria-label="Architecture Diagram Controls">
+    <div class="header-left">
+      <div class="brand-title">
+        <span>GuardSaaB</span>
+        <span class="brand-badge">Architecture Flow</span>
+      </div>
+
+      <!-- Search -->
+      <div class="search-box">
+        <input 
+          type="search" 
+          id="node-search" 
+          class="search-input" 
+          placeholder="Filter nodes / files..." 
+          aria-label="Filter nodes by name or source file"
+          autocomplete="off"
+        >
+        <button id="search-clear-btn" class="search-clear" aria-label="Clear search">✕</button>
+      </div>
+
+      <!-- Group Toggles -->
+      <div class="filter-pills" role="group" aria-label="Subgraph Filters">
+        <button class="pill-btn active" data-group="group_entry" title="Toggle Agent Entrypoints">
+          <span class="pill-dot" style="background:var(--tone-blue-border)"></span>Entrypoints
+        </button>
+        <button class="pill-btn active" data-group="group_decision" title="Toggle Decision & Security">
+          <span class="pill-dot" style="background:var(--tone-amber-border)"></span>Decision
+        </button>
+        <button class="pill-btn active" data-group="group_operations" title="Toggle Audit & Operations">
+          <span class="pill-dot" style="background:var(--tone-mint-border)"></span>Operations
+        </button>
+        <button class="pill-btn active" data-group="group_portals" title="Toggle User Portals">
+          <span class="pill-dot" style="background:var(--tone-rose-border)"></span>Portals
+        </button>
+        <button class="pill-btn active" data-group="group_integrations" title="Toggle Integrations">
+          <span class="pill-dot" style="background:var(--tone-indigo-border)"></span>Integrations
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Controls: Trace Mode & Canvas Actions -->
+    <div class="header-left">
+      <!-- Trace Controller -->
+      <div class="trace-bar" role="region" aria-label="Execution Trace Controls">
+        <button id="trace-toggle-btn" class="trace-btn" title="Trace a complete agent tool request">
+          ▶ Trace Request
+        </button>
+        <button id="trace-prev-btn" class="trace-btn" title="Previous step" disabled>&lt;</button>
+        <span id="trace-step-label" class="trace-step-badge" style="display:none">0/9</span>
+        <button id="trace-next-btn" class="trace-btn" title="Next step" disabled>&gt;</button>
+        <button id="trace-stop-btn" class="trace-btn" title="Stop trace" style="display:none">✕</button>
+      </div>
+
+      <!-- View & Theme Controls -->
+      <div class="view-controls">
+        <button id="zoom-in-btn" class="icon-btn" title="Zoom In (+)" aria-label="Zoom In">+</button>
+        <button id="zoom-out-btn" class="icon-btn" title="Zoom Out (-)" aria-label="Zoom Out">−</button>
+        <button id="fit-screen-btn" class="icon-btn" title="Fit to Screen" aria-label="Fit to Screen">⊡</button>
+        <button id="reset-zoom-btn" class="icon-btn" title="Reset View (100%)" aria-label="Reset View">1:1</button>
+        <button id="a11y-modal-btn" class="icon-btn" title="Accessible Text Alternative" aria-label="Open accessible text outline">≡</button>
+        <button id="theme-toggle-btn" class="icon-btn" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">◐</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CANVAS STAGE -->
+  <div class="canvas-container" id="canvas-container" role="region" aria-label="Interactive architecture canvas (drag to pan, scroll to zoom)">
+    <svg id="flow-canvas" viewBox="0 0 1520 1200" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <!-- Gradients for Tone Families -->
+        <linearGradient id="grad-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="var(--tone-blue-bg)"/>
+          <stop offset="100%" stop-color="var(--bg-surface-sunken)"/>
+        </linearGradient>
+        <linearGradient id="grad-amber" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="var(--tone-amber-bg)"/>
+          <stop offset="100%" stop-color="var(--bg-surface-sunken)"/>
+        </linearGradient>
+        <linearGradient id="grad-mint" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="var(--tone-mint-bg)"/>
+          <stop offset="100%" stop-color="var(--bg-surface-sunken)"/>
+        </linearGradient>
+        <linearGradient id="grad-rose" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="var(--tone-rose-bg)"/>
+          <stop offset="100%" stop-color="var(--bg-surface-sunken)"/>
+        </linearGradient>
+        <linearGradient id="grad-indigo" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="var(--tone-indigo-bg)"/>
+          <stop offset="100%" stop-color="var(--bg-surface-sunken)"/>
+        </linearGradient>
+
+        <!-- Arrow Markers -->
+        <marker id="marker-arrow-solid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--edge-primary)"/>
+        </marker>
+        <marker id="marker-arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--edge-primary)"/>
+        </marker>
+        <marker id="marker-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--edge-active)"/>
+        </marker>
+      </defs>
+
+      <!-- Pan/Zoom Master Layer -->
+      <g id="viewport-stage">
+        <!-- Layer 1: Subgraph Containers -->
+        <g id="layer-subgraphs"></g>
+        <!-- Layer 2: Edges & Flow Lines -->
+        <g id="layer-edges"></g>
+        <!-- Layer 3: Edge Labels -->
+        <g id="layer-edge-labels"></g>
+        <!-- Layer 4: Node Cards -->
+        <g id="layer-nodes"></g>
+      </g>
+    </svg>
+
+    <!-- FLOATING TOOLTIP -->
+    <div id="tooltip" class="diagram-tooltip" role="tooltip" aria-hidden="true"></div>
+
+    <!-- LEGEND OVERLAY -->
+    <div class="legend-card" role="complementary" aria-label="Diagram Legend">
+      <div style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--text-main); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;">Legend</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--tone-blue-border)"></span><span>Entrypoints &amp; Users</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--tone-amber-border)"></span><span>Decision &amp; Security</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--tone-mint-border)"></span><span>Audit &amp; Operations</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--tone-rose-border)"></span><span>User Portals</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--tone-indigo-border)"></span><span>Integrations &amp; Agents</span></div>
+      <div class="legend-row" style="margin-top:2px"><span class="legend-line"></span><span>Primary enforcement flow</span></div>
+      <div class="legend-row"><span class="legend-line dashed"></span><span>Secondary / optional flow</span></div>
+      <div class="legend-row"><span style="font-family:var(--font-mono); font-size:11px; color:var(--tone-mint-text)">[()]</span><span>Cryptographic datastore</span></div>
+    </div>
+
+    <!-- TRACE STEP CAPTION BANNER -->
+    <div id="trace-banner" class="trace-banner" role="status" aria-live="polite">
+      <strong id="trace-step-num" style="color:var(--tone-amber-text); font-family:var(--font-mono);">STEP 1/9</strong>
+      <span id="trace-step-text" style="color:var(--text-main)">Agent tool call submits action...</span>
+    </div>
+  </div>
+
+  <!-- SIDE INSPECTOR DRAWER -->
+  <aside id="side-drawer" class="side-drawer" role="dialog" aria-label="Node Details" aria-modal="false">
+    <div class="drawer-header">
+      <div>
+        <span id="drawer-tone-badge" class="brand-badge" style="margin-bottom:6px; display:inline-block;">NODE</span>
+        <h2 id="drawer-title" style="font-size:18px; margin:0; color:var(--text-main);">Node Details</h2>
+        <span id="drawer-subtitle" style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);"></span>
+      </div>
+      <button id="drawer-close-btn" class="icon-btn" aria-label="Close details panel">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <div>
+        <div class="drawer-section-title">Functional Role &amp; Architecture</div>
+        <p id="drawer-desc" style="font-size:13px; color:var(--text-main); margin:0; line-height:1.55;"></p>
+      </div>
+
+      <div id="drawer-link-container">
+        <div class="drawer-section-title">Source Code Implementation</div>
+        <a id="drawer-source-link" href="#" target="_blank" rel="noopener noreferrer" class="drawer-link-btn">
+          <span>View Source on GitHub</span>
+          <span style="font-size:12px">↗</span>
+        </a>
+      </div>
+
+      <div>
+        <div class="drawer-section-title">Incoming Dependencies (Inputs)</div>
+        <ul id="drawer-inputs-list" class="io-list"></ul>
+      </div>
+
+      <div>
+        <div class="drawer-section-title">Outgoing Targets (Outputs)</div>
+        <ul id="drawer-outputs-list" class="io-list"></ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ACCESSIBLE TEXT ALTERNATIVE MODAL -->
+  <div id="a11y-modal" class="a11y-panel" role="dialog" aria-labelledby="a11y-title" aria-modal="true">
+    <div class="a11y-card">
+      <div class="drawer-header">
+        <h2 id="a11y-title" style="font-size:16px; margin:0;">Architecture Outline (Accessible Alternative)</h2>
+        <button id="a11y-close-btn" class="icon-btn" aria-label="Close outline">✕</button>
+      </div>
+      <div class="a11y-content" id="a11y-content"></div>
+    </div>
+  </div>
+
+  <!-- DATA & INTERACTIVE LOGIC -->
+  <script>
+    /* ==========================================================================
+       DATA MODEL: Exact Source of Truth from diagram.txt
+       ========================================================================== */
+    const MODEL = {
+      groups: [
+        { id: "group_entry", label: "Agent entrypoints", tone: "toneBlue", bounds: { x: 70, y: 140, w: 420, h: 290 }, collapsed: false },
+        { id: "group_decision", label: "Decision and security", tone: "toneAmber", bounds: { x: 530, y: 140, w: 580, h: 410 }, collapsed: false },
+        { id: "group_operations", label: "Audit and operations", tone: "toneMint", bounds: { x: 70, y: 500, w: 420, h: 300 }, collapsed: false },
+        { id: "group_portals", label: "User portals", tone: "toneRose", bounds: { x: 530, y: 620, w: 470, h: 380 }, collapsed: false },
+        { id: "group_integrations", label: "Discovery and integrations", tone: "toneIndigo", bounds: { x: 1040, y: 440, w: 420, h: 290 }, collapsed: false }
+      ],
+      nodes: [
+        // Standalone nodes
+        { id: "node_agent", label: "Agent tool call", subtitle: "", group: null, shape: "circle", tone: "toneIndigo", x: 200, y: 60, r: 42, url: null, desc: "Autonomous AI agent (Claude Code, Codex CLI, Cursor) initiating a tool action." },
+        { id: "node_user", label: "Employee or reviewer", subtitle: "", group: null, shape: "circle", tone: "toneBlue", x: 1250, y: 60, r: 42, url: null, desc: "Human operator, HR reviewer, or company employee using Northstar Works or GuardSaaB Console." },
+
+        // group_entry
+        { id: "node_hook", label: "Agent hook", subtitle: "adapters.ts", group: "group_entry", shape: "rect", tone: "toneBlue", x: 100, y: 200, w: 165, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/hook/adapters.ts", desc: "PreToolUse gate intercepting client tool calls and normalizing payloads to unified MCP schema." },
+        { id: "node_proxy", label: "Egress proxy", subtitle: "server.ts", group: "group_entry", shape: "rect", tone: "toneBlue", x: 295, y: 200, w: 165, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/proxy/server.ts", desc: "Network-layer HTTP/HTTPS egress proxy gating external requests and performing TLS/MITM inspection." },
+        { id: "node_engine", label: "GuardSaaB engine", subtitle: "server.ts", group: "group_entry", shape: "rect", tone: "toneBlue", x: 195, y: 325, w: 185, h: 68, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/engine/server.ts", desc: "Central gateway service coordinating policy checks, risk scoring, socket holds, and audit logging." },
+
+        // group_decision
+        { id: "node_policy", label: "Policy evaluation", subtitle: "engine.ts", group: "group_decision", shape: "rect", tone: "toneAmber", x: 560, y: 200, w: 170, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/policy/engine.ts", desc: "Pure deterministic evaluator applying declarative YAML rules (allow, hitl, block) with strict precedence." },
+        { id: "node_taxonomy", label: "Tool taxonomy", subtitle: "index.ts", group: "group_decision", shape: "rect", tone: "toneAmber", x: 790, y: 200, w: 160, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/taxonomy/index.ts", desc: "Standardized taxonomy categorizing tools by risk surface (filesystem, shell, egress, memory, credential)." },
+        { id: "node_behavior", label: "Behavioral signals", subtitle: "behavioral.ts", group: "group_decision", shape: "rect", tone: "toneAmber", x: 550, y: 310, w: 165, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/signals/behavioral.ts", desc: "Monitors runtime operational velocity, sliding-window call frequency, and repeated retry loops." },
+        { id: "node_content", label: "Content signals", subtitle: "content.ts", group: "group_decision", shape: "rect", tone: "toneAmber", x: 735, y: 310, w: 165, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/signals/content.ts", desc: "Inspects parameters and buffers for sensitive file paths, credential signatures, and high-entropy secrets." },
+        { id: "node_injection", label: "Injection detection", subtitle: "injection.ts", group: "group_decision", shape: "rect", tone: "toneAmber", x: 920, y: 310, w: 165, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/signals/injection.ts", desc: "Heuristic and classifier-based scanner detecting prompt injection payloads and jailbreak syntax." },
+        { id: "node_ioc", label: "IOC checks", subtitle: "ioc.ts", group: "group_decision", shape: "rect", tone: "toneAmber", x: 610, y: 440, w: 155, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/signals/ioc.ts", desc: "Matches outbound domains and IPs against threat feeds, known exfiltration sinks, and malicious hosts." },
+        { id: "node_risk", label: "Risk aggregation", subtitle: "engine.ts", group: "group_decision", shape: "rect", tone: "toneAmber", x: 800, y: 440, w: 170, h: 68, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/risk/engine.ts", desc: "Aggregates behavioral, content, and injection signals into composite risk score and outcome band." },
+
+        // group_operations
+        { id: "node_cli", label: "CLI operations", subtitle: "index.ts", group: "group_operations", shape: "rect", tone: "toneMint", x: 100, y: 560, w: 160, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/cli/index.ts", desc: "Command-line interface for starting the engine, validating rules, auditing dependencies, and running scans." },
+        { id: "node_audit", label: "Audit chain", subtitle: "audit-store.ts", group: "group_operations", shape: "cylinder", tone: "toneMint", x: 290, y: 555, w: 175, h: 72, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/db/audit-store.ts", desc: "PostgreSQL tamper-evident ledger with SHA-256 Merkle previous-hash chaining and immutable SQL triggers." },
+        { id: "node_auditview", label: "Audit projection", subtitle: "projector.ts", group: "group_operations", shape: "rect", tone: "toneMint", x: 290, y: 690, w: 175, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/audit/projector.ts", desc: "Projects raw cryptographic audit log into session summaries, timelines, and investigation views." },
+
+        // group_portals
+        { id: "node_livefeed", label: "Live engine feed", subtitle: "useEngine.ts", group: "group_portals", shape: "rect", tone: "toneRose", x: 560, y: 680, w: 170, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/dashboard/src/useEngine.ts", desc: "Real-time WebSocket client connection streaming decisions, violations, and state changes to portals." },
+        { id: "node_governance", label: "Governance console", subtitle: "App.tsx", group: "group_portals", shape: "rect", tone: "toneRose", x: 785, y: 680, w: 185, h: 68, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/dashboard/src/App.tsx", desc: "Central web cockpit (:5174) for live telemetry, human-in-the-loop approvals, and fleet management." },
+        { id: "node_sessions", label: "Session review", subtitle: "SessionsView.tsx", group: "group_portals", shape: "rect", tone: "toneRose", x: 785, y: 805, w: 175, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/dashboard/src/SessionsView.tsx", desc: "Timeline replay interface reconstructing agent execution steps, decision rationales, and interventions." },
+        { id: "node_company", label: "Northstar workspace", subtitle: "", group: "group_portals", shape: "rect", tone: "toneRose", x: 560, y: 805, w: 170, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/dashboard/src/CompanyWorkspace.tsx", desc: "Corporate intranet (:5173) demonstrating employee fund requests and Zeo AI financial assistant." },
+        { id: "node_scenario", label: "Scenario lab", subtitle: "ScenarioLab.tsx", group: "group_portals", shape: "rect", tone: "toneRose", x: 675, y: 915, w: 175, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/dashboard/src/ScenarioLab.tsx", desc: "Interactive sandbox for firing simulated attacks, prompt injections, and rogue tool calls." },
+
+        // group_integrations
+        { id: "node_mcp", label: "MCP inspection", subtitle: "scanner.ts", group: "group_integrations", shape: "rect", tone: "toneIndigo", x: 1070, y: 500, w: 165, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/mcp/scanner.ts", desc: "Scans Model Context Protocol server definitions against poisoning, parameter tampering, and tool pinning." },
+        { id: "node_discovery", label: "MCP discovery", subtitle: "discover.ts", group: "group_integrations", shape: "rect", tone: "toneIndigo", x: 1265, y: 500, w: 165, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/mcp/discover.ts", desc: "Auto-discovers locally installed and configured MCP tools across Claude Code, Cursor, and Cline." },
+        { id: "node_deps", label: "Dependency advisories", subtitle: "advisories.ts", group: "group_integrations", shape: "rect", tone: "toneIndigo", x: 1160, y: 635, w: 185, h: 64, url: "https://github.com/bhoomik-codes/codex-3-hackathon/blob/main/src/deps/advisories.ts", desc: "Offline supply-chain audit checking lockfiles for malicious packages, known CVEs, and hash pins." }
+      ],
+      edges: [
+        { id: "e1", from: "node_agent", to: "node_hook", label: "submits action", dashed: false },
+        { id: "e2", from: "node_hook", to: "node_engine", label: "intercepts", dashed: false },
+        { id: "e3", from: "node_proxy", to: "node_engine", label: "uses decisions", dashed: true },
+        { id: "e4", from: "node_engine", to: "node_policy", label: "evaluates policy", dashed: false },
+        { id: "e5", from: "node_policy", to: "node_taxonomy", label: "classifies tool", dashed: false },
+        { id: "e6", from: "node_engine", to: "node_behavior", label: "checks behavior", dashed: false },
+        { id: "e7", from: "node_engine", to: "node_content", label: "checks content", dashed: false },
+        { id: "e8", from: "node_engine", to: "node_injection", label: "checks injection", dashed: false },
+        { id: "e9", from: "node_engine", to: "node_ioc", label: "checks indicators", dashed: false },
+        { id: "e10", from: "node_engine", to: "node_risk", label: "aggregates risk", dashed: false },
+        { id: "e11", from: "node_risk", to: "node_behavior", label: "uses signals", dashed: false },
+        { id: "e12", from: "node_risk", to: "node_content", label: "uses signals", dashed: false },
+        { id: "e13", from: "node_engine", to: "node_audit", label: "records activity", dashed: false },
+        { id: "e14", from: "node_audit", to: "node_auditview", label: "projects events", dashed: true },
+        { id: "e15", from: "node_engine", to: "node_livefeed", label: "streams events", dashed: false },
+        { id: "e16", from: "node_livefeed", to: "node_governance", label: "provides state", dashed: false },
+        { id: "e17", from: "node_governance", to: "node_engine", label: "sends decisions", dashed: false },
+        { id: "e18", from: "node_governance", to: "node_sessions", label: "renders sessions", dashed: false },
+        { id: "e19", from: "node_user", to: "node_governance", label: "reviews activity", dashed: false },
+        { id: "e20", from: "node_user", to: "node_company", label: "uses workspace", dashed: false },
+        { id: "e21", from: "node_company", to: "node_scenario", label: "opens scenario lab", dashed: true },
+        { id: "e22", from: "node_cli", to: "node_engine", label: "starts engine", dashed: false },
+        { id: "e23", from: "node_cli", to: "node_mcp", label: "runs scans", dashed: false },
+        { id: "e24", from: "node_cli", to: "node_discovery", label: "discovers servers", dashed: false },
+        { id: "e25", from: "node_cli", to: "node_deps", label: "checks dependencies", dashed: true }
+      ],
+      traceSteps: [
+        { nodeId: "node_agent", edgeId: "e1", text: "1. Agent submits tool call — Autonomous agent initiates tool action." },
+        { nodeId: "node_hook", edgeId: "e2", text: "2. Hook intercepts call — PreToolUse hook catches and normalizes MCP call." },
+        { nodeId: "node_engine", edgeId: "e4", text: "3. Engine gateway — Engine verifies session origin and routes to policy." },
+        { nodeId: "node_policy", edgeId: "e5", text: "4. Policy evaluation — JsonLogic rules evaluated against tool taxonomy." },
+        { nodeId: "node_behavior", edgeId: "e10", text: "5. Signals analysis — Behavioral loops, content DLP, and injection checked." },
+        { nodeId: "node_risk", edgeId: "e13", text: "6. Risk aggregation — Composite risk evaluated into ALLOW, AUDIT, HITL, or BLOCK." },
+        { nodeId: "node_audit", edgeId: "e15", text: "7. Cryptographic audit — Tamper-evident SHA-256 Merkle chain event written." },
+        { nodeId: "node_livefeed", edgeId: "e16", text: "8. Live streaming — WebSocket streams telemetry to active dashboards." },
+        { nodeId: "node_governance", edgeId: null, text: "9. Governance Console — Human operator reviews decision or handles HITL." }
+      ]
+    };
+
+    /* ==========================================================================
+       SVG RENDERER & INTERACTIVE LOGIC
+       ========================================================================== */
+    class DiagramController {
+      constructor() {
+        this.svg = document.getElementById("flow-canvas");
+        this.stage = document.getElementById("viewport-stage");
+        this.container = document.getElementById("canvas-container");
+        this.tooltip = document.getElementById("tooltip");
+        this.sideDrawer = document.getElementById("side-drawer");
+
+        // Pan/Zoom State
+        this.scale = 0.95;
+        this.panX = 30;
+        this.panY = 20;
+        this.isPanning = false;
+        this.startX = 0;
+        this.startY = 0;
+
+        // Trace Mode State
+        this.traceActive = false;
+        this.traceIndex = 0;
+        this.traceTimer = null;
+
+        // Filter / Search State
+        this.searchQuery = "";
+        this.activeGroups = new Set(MODEL.groups.map(g => g.id));
+        this.collapsedGroups = new Set();
+        this.selectedNodeId = null;
+
+        this.init();
+      }
+
+      init() {
+        this.render();
+        this.setupEventListeners();
+        this.setupPanZoom();
+        this.applyTransform();
+        this.renderA11yContent();
+      }
+
+      getNode(id) {
+        return MODEL.nodes.find(n => n.id === id);
+      }
+
+      getNodeAnchor(id, preferredSide = 'center') {
+        const node = this.getNode(id);
+        if (!node) return { x: 0, y: 0 };
+
+        if (node.shape === 'circle') {
+          return { x: node.x, y: node.y };
+        }
+
+        const halfW = node.w / 2;
+        const halfH = node.h / 2;
+        const cx = node.x + halfW;
+        const cy = node.y + halfH;
+
+        switch (preferredSide) {
+          case 'top': return { x: cx, y: node.y };
+          case 'bottom': return { x: cx, y: node.y + node.h };
+          case 'left': return { x: node.x, y: cy };
+          case 'right': return { x: node.x + node.w, y: cy };
+          default: return { x: cx, y: cy };
+        }
+      }
+
+      render() {
+        this.renderSubgraphs();
+        this.renderEdges();
+        this.renderNodes();
+      }
+
+      renderSubgraphs() {
+        const layer = document.getElementById("layer-subgraphs");
+        layer.innerHTML = "";
+
+        MODEL.groups.forEach(group => {
+          if (!this.activeGroups.has(group.id)) return;
+
+          const isCollapsed = this.collapsedGroups.has(group.id);
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          g.setAttribute("class", `subgraph-group tone-${group.tone}`);
+          g.setAttribute("data-group-id", group.id);
+
+          const h = isCollapsed ? 42 : group.bounds.h;
+
+          g.innerHTML = `
+            <rect class="subgraph-rect" 
+              x="${group.bounds.x}" y="${group.bounds.y}" 
+              width="${group.bounds.w}" height="${h}"
+              style="stroke: var(--${group.tone}-border);"
+            />
+            <rect class="subgraph-header-bar" 
+              x="${group.bounds.x}" y="${group.bounds.y}" 
+              width="${group.bounds.w}" height="36" 
+              fill="transparent"
+            />
+            <text class="subgraph-label" x="${group.bounds.x + 16}" y="${group.bounds.y + 22}">
+              ${group.label} ${isCollapsed ? `(${MODEL.nodes.filter(n => n.group === group.id).length} nodes)` : ''}
+            </text>
+            <text class="subgraph-collapse-icon" x="${group.bounds.x + group.bounds.w - 28}" y="${group.bounds.y + 22}">
+              ${isCollapsed ? '[ + ]' : '[ − ]'}
+            </text>
+          `;
+
+          g.querySelector(".subgraph-header-bar").addEventListener("click", () => this.toggleGroupCollapse(group.id));
+          g.querySelector(".subgraph-collapse-icon").addEventListener("click", () => this.toggleGroupCollapse(group.id));
+
+          layer.appendChild(g);
+        });
+      }
+
+      renderEdges() {
+        const layerEdges = document.getElementById("layer-edges");
+        const layerLabels = document.getElementById("layer-edge-labels");
+        layerEdges.innerHTML = "";
+        layerLabels.innerHTML = "";
+
+        MODEL.edges.forEach(edge => {
+          const fromNode = this.getNode(edge.from);
+          const toNode = this.getNode(edge.to);
+          if (!fromNode || !toNode) return;
+
+          // Check if parent group is hidden
+          if (fromNode.group && !this.activeGroups.has(fromNode.group)) return;
+          if (toNode.group && !this.activeGroups.has(toNode.group)) return;
+
+          // Determine connection anchors
+          let fromPt, toPt;
+          const fromCy = fromNode.shape === 'circle' ? fromNode.y : fromNode.y + fromNode.h / 2;
+          const toCy = toNode.shape === 'circle' ? toNode.y : toNode.y + toNode.h / 2;
+
+          if (toCy > fromCy + 40) {
+            fromPt = this.getNodeAnchor(edge.from, 'bottom');
+            toPt = this.getNodeAnchor(edge.to, 'top');
+          } else if (toCy < fromCy - 40) {
+            fromPt = this.getNodeAnchor(edge.from, 'top');
+            toPt = this.getNodeAnchor(edge.to, 'bottom');
+          } else {
+            const fromCx = fromNode.shape === 'circle' ? fromNode.x : fromNode.x + fromNode.w / 2;
+            const toCx = toNode.shape === 'circle' ? toNode.x : toNode.x + toNode.w / 2;
+            fromPt = this.getNodeAnchor(edge.from, toCx > fromCx ? 'right' : 'left');
+            toPt = this.getNodeAnchor(edge.to, toCx > fromCx ? 'left' : 'right');
+          }
+
+          // Build Smooth Cubic Bezier Path
+          const dx = toPt.x - fromPt.x;
+          const dy = toPt.y - fromPt.y;
+          let cp1x, cp1y, cp2x, cp2y;
+
+          if (Math.abs(dy) > Math.abs(dx)) {
+            const cOffset = Math.min(Math.abs(dy) * 0.5, 90);
+            cp1x = fromPt.x;
+            cp1y = fromPt.y + (dy > 0 ? cOffset : -cOffset);
+            cp2x = toPt.x;
+            cp2y = toPt.y + (dy > 0 ? -cOffset : cOffset);
+          } else {
+            const cOffset = Math.min(Math.abs(dx) * 0.5, 90);
+            cp1x = fromPt.x + (dx > 0 ? cOffset : -cOffset);
+            cp1y = fromPt.y;
+            cp2x = toPt.x + (dx > 0 ? -cOffset : cOffset);
+            cp2y = toPt.y;
+          }
+
+          const pathD = `M ${fromPt.x} ${fromPt.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${toPt.x} ${toPt.y}`;
+
+          // Create SVG Path
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("id", `edge-${edge.id}`);
+          path.setAttribute("d", pathD);
+          path.setAttribute("class", `edge-path ${edge.dashed ? 'dashed edge-animated slow' : 'edge-animated'}`);
+          path.setAttribute("marker-end", edge.dashed ? "url(#marker-arrow-dashed)" : "url(#marker-arrow-solid)");
+          path.setAttribute("data-from", edge.from);
+          path.setAttribute("data-to", edge.to);
+
+          layerEdges.appendChild(path);
+
+          // Edge Label (Pill along midpoint)
+          if (edge.label) {
+            const midX = (fromPt.x + toPt.x) / 2 + (cp1x - cp2x) * 0.1;
+            const midY = (fromPt.y + toPt.y) / 2 + (cp1y - cp2y) * 0.1;
+            const textLen = edge.label.length * 6 + 14;
+
+            const gLabel = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            gLabel.setAttribute("class", "edge-label-group");
+            gLabel.setAttribute("data-edge-id", edge.id);
+
+            gLabel.innerHTML = `
+              <rect class="edge-label-bg" x="${midX - textLen/2}" y="${midY - 9}" width="${textLen}" height="18"/>
+              <text class="edge-label-text" x="${midX}" y="${midY}">${edge.label}</text>
+            `;
+            layerLabels.appendChild(gLabel);
+          }
+        });
+      }
+
+      renderNodes() {
+        const layer = document.getElementById("layer-nodes");
+        layer.innerHTML = "";
+
+        MODEL.nodes.forEach(node => {
+          // If group is hidden or collapsed
+          if (node.group && (!this.activeGroups.has(node.group) || this.collapsedGroups.has(node.group))) return;
+
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          g.setAttribute("id", `node-${node.id}`);
+          g.setAttribute("class", `node-group tone-${node.tone}`);
+          g.setAttribute("tabindex", "0");
+          g.setAttribute("role", "button");
+          g.setAttribute("aria-label", `${node.label} ${node.subtitle}`);
+          g.setAttribute("data-node-id", node.id);
+
+          if (node.shape === 'circle') {
+            const pulseClass = node.id === 'node_agent' ? 'pulse-blue' : '';
+            g.innerHTML = `
+              <circle class="node-circle-bg ${pulseClass}" cx="${node.x}" cy="${node.y}" r="${node.r}" 
+                fill="url(#grad-${node.tone.replace('tone', '').toLowerCase()})" 
+                stroke="var(--${node.tone}-border)"
+              />
+              <text class="node-title-text" x="${node.x}" y="${node.y - 4}" text-anchor="middle" dominant-baseline="central">
+                ${node.label.split(' ')[0]}
+              </text>
+              <text class="node-sub-text" x="${node.x}" y="${node.y + 12}" text-anchor="middle">
+                ${node.label.split(' ').slice(1).join(' ')}
+              </text>
+            `;
+          } else if (node.shape === 'cylinder') {
+            // Special Cylinder geometry for Datastore
+            const w = node.w, h = node.h, x = node.x, y = node.y;
+            const ry = 8;
+            g.innerHTML = `
+              <path class="node-cylinder-path pulse-mint"
+                d="M ${x} ${y + ry}
+                   a ${w/2} ${ry} 0 0 0 ${w} 0
+                   v ${h - ry*2}
+                   a ${w/2} ${ry} 0 0 1 -${w} 0
+                   Z"
+                fill="url(#grad-mint)" stroke="var(--tone-mint-border)"
+              />
+              <ellipse cx="${x + w/2}" cy="${y + ry}" rx="${w/2}" ry="${ry}"
+                fill="var(--tone-mint-bg)" stroke="var(--tone-mint-border)" stroke-width="1.5"
+              />
+              <text class="node-title-text" x="${x + w/2}" y="${y + h/2 + 2}" text-anchor="middle">
+                ${node.label}
+              </text>
+              <text class="node-sub-text" x="${x + w/2}" y="${y + h/2 + 18}" text-anchor="middle">
+                [${node.subtitle}]
+              </text>
+            `;
+          } else {
+            // Standard Rounded Card
+            const w = node.w, h = node.h, x = node.x, y = node.y;
+            const pulseClass = (node.id === 'node_hook' || node.id === 'node_engine') ? 'pulse-blue' : '';
+            g.innerHTML = `
+              <rect class="node-bg ${pulseClass}" x="${x}" y="${y}" width="${w}" height="${h}"
+                fill="url(#grad-${node.tone.replace('tone', '').toLowerCase()})"
+                stroke="var(--${node.tone}-border)"
+              />
+              <text class="node-title-text" x="${x + 12}" y="${y + 26}">
+                ${node.label}
+              </text>
+              <text class="node-sub-text" x="${x + 12}" y="${y + 44}">
+                ${node.subtitle ? `[${node.subtitle}]` : ''}
+              </text>
+            `;
+          }
+
+          // Node Interaction Events
+          g.addEventListener("mouseenter", (e) => this.onNodeHover(node, e));
+          g.addEventListener("mousemove", (e) => this.updateTooltipPos(e));
+          g.addEventListener("mouseleave", () => this.onNodeLeave());
+          g.addEventListener("click", () => this.onNodeClick(node));
+          g.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              this.onNodeClick(node);
+            }
+          });
+
+          layer.appendChild(g);
+        });
+      }
+
+      onNodeHover(node, event) {
+        if (this.traceActive) return;
+
+        // Find directly connected edges & neighbor nodes
+        const connectedEdgeIds = new Set();
+        const neighborNodeIds = new Set([node.id]);
+
+        MODEL.edges.forEach(e => {
+          if (e.from === node.id) {
+            connectedEdgeIds.add(e.id);
+            neighborNodeIds.add(e.to);
+          }
+          if (e.to === node.id) {
+            connectedEdgeIds.add(e.id);
+            neighborNodeIds.add(e.from);
+          }
+        });
+
+        // Dim non-connected nodes & edges
+        document.querySelectorAll(".node-group").forEach(el => {
+          const id = el.getAttribute("data-node-id");
+          if (neighborNodeIds.has(id)) {
+            el.classList.remove("is-dimmed");
+            if (id === node.id) el.classList.add("is-highlighted");
+          } else {
+            el.classList.add("is-dimmed");
+          }
+        });
+
+        document.querySelectorAll(".edge-path").forEach(el => {
+          const from = el.getAttribute("data-from");
+          const to = el.getAttribute("data-to");
+          if (from === node.id || to === node.id) {
+            el.classList.remove("is-dimmed");
+            el.classList.add("is-highlighted-edge");
+            el.setAttribute("marker-end", "url(#marker-arrow-active)");
+          } else {
+            el.classList.add("is-dimmed");
+            el.classList.remove("is-highlighted-edge");
+          }
+        });
+
+        // Show Tooltip
+        const grp = MODEL.groups.find(g => g.id === node.group);
+        this.tooltip.innerHTML = `
+          <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-faint); text-transform:uppercase; margin-bottom:2px">
+            ${grp ? grp.label : 'Standalone Entity'}
+          </div>
+          <strong style="font-size:12px; color:var(--text-main); display:block; margin-bottom:4px">${node.label}</strong>
+          <span style="font-size:11px; color:var(--text-muted); display:block; line-height:1.4">${node.desc}</span>
+          ${node.subtitle ? `<code style="margin-top:6px; display:inline-block; font-size:10px; color:var(--edge-active)">${node.subtitle}</code>` : ''}
+        `;
+        this.tooltip.classList.add("visible");
+        this.updateTooltipPos(event);
+      }
+
+      updateTooltipPos(e) {
+        const bounds = this.container.getBoundingClientRect();
+        const x = e.clientX - bounds.left + 16;
+        const y = e.clientY - bounds.top + 16;
+        this.tooltip.style.left = `${Math.min(x, bounds.width - 270)}px`;
+        this.tooltip.style.top = `${Math.min(y, bounds.height - 100)}px`;
+      }
+
+      onNodeLeave() {
+        if (this.traceActive) return;
+        this.tooltip.classList.remove("visible");
+
+        document.querySelectorAll(".node-group").forEach(el => {
+          el.classList.remove("is-dimmed", "is-highlighted");
+        });
+
+        document.querySelectorAll(".edge-path").forEach(el => {
+          el.classList.remove("is-dimmed", "is-highlighted-edge");
+          const isDashed = el.classList.contains("dashed");
+          el.setAttribute("marker-end", isDashed ? "url(#marker-arrow-dashed)" : "url(#marker-arrow-solid)");
+        });
+      }
+
+      onNodeClick(node) {
+        this.selectedNodeId = node.id;
+        const grp = MODEL.groups.find(g => g.id === node.group);
+
+        document.getElementById("drawer-tone-badge").innerText = grp ? grp.label : "Entity";
+        document.getElementById("drawer-tone-badge").style.borderColor = `var(--${node.tone}-border)`;
+        document.getElementById("drawer-title").innerText = node.label;
+        document.getElementById("drawer-subtitle").innerText = node.subtitle ? `Source: ${node.subtitle}` : "Virtual Actor";
+        document.getElementById("drawer-desc").innerText = node.desc;
+
+        // Source Link
+        const linkBtn = document.getElementById("drawer-source-link");
+        const linkCont = document.getElementById("drawer-link-container");
+        if (node.url) {
+          linkBtn.href = node.url;
+          linkCont.style.display = "block";
+        } else {
+          linkCont.style.display = "none";
+        }
+
+        // Inputs list
+        const inputs = MODEL.edges.filter(e => e.to === node.id);
+        const inputsList = document.getElementById("drawer-inputs-list");
+        inputsList.innerHTML = inputs.length ? inputs.map(e => {
+          const from = this.getNode(e.from);
+          return `<li class="io-item" onclick="app.focusNode('${e.from}')">
+                    <span>${from ? from.label : e.from}</span>
+                    <span style="color:var(--text-faint); font-size:10px">${e.label} &rarr;</span>
+                  </li>`;
+        }).join('') : '<li style="font-size:11px; color:var(--text-faint)">No incoming edges</li>';
+
+        // Outputs list
+        const outputs = MODEL.edges.filter(e => e.from === node.id);
+        const outputsList = document.getElementById("drawer-outputs-list");
+        outputsList.innerHTML = outputs.length ? outputs.map(e => {
+          const to = this.getNode(e.to);
+          return `<li class="io-item" onclick="app.focusNode('${e.to}')">
+                    <span style="color:var(--text-faint); font-size:10px">&rarr; ${e.label}</span>
+                    <span>${to ? to.label : e.to}</span>
+                  </li>`;
+        }).join('') : '<li style="font-size:11px; color:var(--text-faint)">No outgoing edges</li>';
+
+        this.sideDrawer.classList.add("open");
+      }
+
+      focusNode(nodeId) {
+        const node = this.getNode(nodeId);
+        if (!node) return;
+
+        this.onNodeClick(node);
+
+        // Center on node
+        const box = this.container.getBoundingClientRect();
+        const nx = node.shape === 'circle' ? node.x : node.x + node.w / 2;
+        const ny = node.shape === 'circle' ? node.y : node.y + node.h / 2;
+
+        this.scale = 1.15;
+        this.panX = box.width / 2 - nx * this.scale - 120; // offset for drawer
+        this.panY = box.height / 2 - ny * this.scale;
+        this.applyTransform(true);
+      }
+
+      toggleGroupCollapse(groupId) {
+        if (this.collapsedGroups.has(groupId)) {
+          this.collapsedGroups.delete(groupId);
+        } else {
+          this.collapsedGroups.add(groupId);
+        }
+        this.render();
+      }
+
+      /* Pan and Zoom Mechanics */
+      setupPanZoom() {
+        const cont = this.container;
+
+        cont.addEventListener("mousedown", (e) => {
+          if (e.target.closest(".node-group") || e.target.closest(".subgraph-header-bar")) return;
+          this.isPanning = true;
+          this.startX = e.clientX - this.panX;
+          this.startY = e.clientY - this.panY;
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!this.isPanning) return;
+          this.panX = e.clientX - this.startX;
+          this.panY = e.clientY - this.startY;
+          this.applyTransform();
+        });
+
+        window.addEventListener("mouseup", () => {
+          this.isPanning = false;
+        });
+
+        // Wheel Zoom
+        cont.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          const zoomFactor = 1 - e.deltaY * 0.0012;
+          const newScale = Math.min(Math.max(this.scale * zoomFactor, 0.4), 2.4);
+
+          const rect = cont.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          this.panX = mouseX - (mouseX - this.panX) * (newScale / this.scale);
+          this.panY = mouseY - (mouseY - this.panY) * (newScale / this.scale);
+          this.scale = newScale;
+
+          this.applyTransform();
+        }, { passive: false });
+      }
+
+      applyTransform(smooth = false) {
+        if (smooth) {
+          this.stage.style.transition = "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)";
+          setTimeout(() => { this.stage.style.transition = "none"; }, 280);
+        }
+        this.stage.setAttribute("transform", `translate(${this.panX}, ${this.panY}) scale(${this.scale})`);
+      }
+
+      zoomBy(delta) {
+        const newScale = Math.min(Math.max(this.scale + delta, 0.4), 2.4);
+        const box = this.container.getBoundingClientRect();
+        this.panX = box.width / 2 - (box.width / 2 - this.panX) * (newScale / this.scale);
+        this.panY = box.height / 2 - (box.height / 2 - this.panY) * (newScale / this.scale);
+        this.scale = newScale;
+        this.applyTransform(true);
+      }
+
+      fitToScreen() {
+        const box = this.container.getBoundingClientRect();
+        const contentW = 1460;
+        const contentH = 1080;
+
+        const scaleX = (box.width - 60) / contentW;
+        const scaleY = (box.height - 60) / contentH;
+        this.scale = Math.min(scaleX, scaleY, 1.1);
+
+        this.panX = (box.width - contentW * this.scale) / 2;
+        this.panY = (box.height - contentH * this.scale) / 2;
+        this.applyTransform(true);
+      }
+
+      resetZoom() {
+        this.scale = 1.0;
+        this.panX = 40;
+        this.panY = 20;
+        this.applyTransform(true);
+      }
+
+      /* Trace Request Player */
+      startTrace() {
+        this.traceActive = true;
+        this.traceIndex = 0;
+        document.getElementById("trace-toggle-btn").innerText = "⏸ Pause Trace";
+        document.getElementById("trace-prev-btn").disabled = false;
+        document.getElementById("trace-next-btn").disabled = false;
+        document.getElementById("trace-stop-btn").style.display = "inline-flex";
+        document.getElementById("trace-step-label").style.display = "inline";
+        document.getElementById("trace-banner").classList.add("visible");
+
+        this.showTraceStep(0);
+        this.playTraceTimer();
+      }
+
+      playTraceTimer() {
+        clearInterval(this.traceTimer);
+        this.traceTimer = setInterval(() => {
+          if (this.traceIndex < MODEL.traceSteps.length - 1) {
+            this.showTraceStep(this.traceIndex + 1);
+          } else {
+            this.showTraceStep(0); // loop
+          }
+        }, 2200);
+      }
+
+      showTraceStep(idx) {
+        this.traceIndex = idx;
+        const step = MODEL.traceSteps[idx];
+
+        document.getElementById("trace-step-label").innerText = `${idx + 1}/${MODEL.traceSteps.length}`;
+        document.getElementById("trace-step-num").innerText = `STEP ${idx + 1}/${MODEL.traceSteps.length}`;
+        document.getElementById("trace-step-text").innerText = step.text;
+
+        // Visual highlights
+        document.querySelectorAll(".node-group").forEach(el => {
+          const id = el.getAttribute("data-node-id");
+          if (id === step.nodeId) {
+            el.classList.remove("is-dimmed");
+            el.classList.add("is-trace-active");
+          } else {
+            el.classList.add("is-dimmed");
+            el.classList.remove("is-trace-active");
+          }
+        });
+
+        document.querySelectorAll(".edge-path").forEach(el => {
+          const id = el.getAttribute("id");
+          if (step.edgeId && id === `edge-${step.edgeId}`) {
+            el.classList.remove("is-dimmed");
+            el.classList.add("is-highlighted-edge");
+          } else {
+            el.classList.add("is-dimmed");
+            el.classList.remove("is-highlighted-edge");
+          }
+        });
+      }
+
+      stopTrace() {
+        this.traceActive = false;
+        clearInterval(this.traceTimer);
+        document.getElementById("trace-toggle-btn").innerText = "▶ Trace Request";
+        document.getElementById("trace-prev-btn").disabled = true;
+        document.getElementById("trace-next-btn").disabled = true;
+        document.getElementById("trace-stop-btn").style.display = "none";
+        document.getElementById("trace-step-label").style.display = "none";
+        document.getElementById("trace-banner").classList.remove("visible");
+
+        this.onNodeLeave(); // restore normal view
+      }
+
+      /* Filter & Search */
+      applyFilter() {
+        const query = this.searchQuery.toLowerCase().trim();
+        const clearBtn = document.getElementById("search-clear-btn");
+        clearBtn.classList.toggle("visible", query.length > 0);
+
+        document.querySelectorAll(".node-group").forEach(el => {
+          const id = el.getAttribute("data-node-id");
+          const node = this.getNode(id);
+          if (!node) return;
+
+          const matchesQuery = !query || 
+            node.label.toLowerCase().includes(query) || 
+            (node.subtitle && node.subtitle.toLowerCase().includes(query)) ||
+            node.desc.toLowerCase().includes(query);
+
+          const matchesGroup = !node.group || this.activeGroups.has(node.group);
+
+          if (matchesQuery && matchesGroup) {
+            el.style.display = "";
+            el.classList.remove("is-dimmed");
+          } else {
+            el.style.display = matchesGroup ? "" : "none";
+            if (query && !matchesQuery) el.classList.add("is-dimmed");
+          }
+        });
+      }
+
+      /* Accessible Text Outline Generator */
+      renderA11yContent() {
+        const container = document.getElementById("a11y-content");
+        let html = "<p>This is a text alternative of the GuardSaaB architecture flowchart, organized by functional subgraphs, components, and edge flows.</p>";
+
+        MODEL.groups.forEach(grp => {
+          html += `<h3>${grp.label}</h3><ul>`;
+          MODEL.nodes.filter(n => n.group === grp.id).forEach(node => {
+            const outputs = MODEL.edges.filter(e => e.from === node.id).map(e => `connects to <em>${this.getNode(e.to)?.label || e.to}</em> (${e.label})`);
+            html += `<li><strong>${node.label}</strong> [${node.subtitle || 'System component'}]: ${node.desc} ${outputs.length ? `<br/>Outputs: ${outputs.join('; ')}` : ''}</li>`;
+          });
+          html += `</ul>`;
+        });
+
+        html += `<h3>Standalone Entities</h3><ul>`;
+        MODEL.nodes.filter(n => !n.group).forEach(node => {
+          const outputs = MODEL.edges.filter(e => e.from === node.id).map(e => `&rarr; ${this.getNode(e.to)?.label || e.to} (${e.label})`);
+          html += `<li><strong>${node.label}</strong>: ${node.desc} ${outputs.length ? `<br/>Outputs: ${outputs.join('; ')}` : ''}</li>`;
+        });
+        html += `</ul>`;
+
+        container.innerHTML = html;
+      }
+
+      setupEventListeners() {
+        // Search Input
+        const searchInput = document.getElementById("node-search");
+        searchInput.addEventListener("input", (e) => {
+          this.searchQuery = e.target.value;
+          this.applyFilter();
+        });
+
+        document.getElementById("search-clear-btn").addEventListener("click", () => {
+          searchInput.value = "";
+          this.searchQuery = "";
+          this.applyFilter();
+          searchInput.focus();
+        });
+
+        // Group Toggle Pills
+        document.querySelectorAll(".pill-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const gid = btn.getAttribute("data-group");
+            if (this.activeGroups.has(gid)) {
+              this.activeGroups.delete(gid);
+              btn.classList.remove("active");
+            } else {
+              this.activeGroups.add(gid);
+              btn.classList.add("active");
+            }
+            this.render();
+          });
+        });
+
+        // Zoom & Fit Buttons
+        document.getElementById("zoom-in-btn").addEventListener("click", () => this.zoomBy(0.2));
+        document.getElementById("zoom-out-btn").addEventListener("click", () => this.zoomBy(-0.2));
+        document.getElementById("fit-screen-btn").addEventListener("click", () => this.fitToScreen());
+        document.getElementById("reset-zoom-btn").addEventListener("click", () => this.resetZoom());
+
+        // Drawer Close
+        document.getElementById("drawer-close-btn").addEventListener("click", () => {
+          this.sideDrawer.classList.remove("open");
+        });
+
+        // Trace Buttons
+        document.getElementById("trace-toggle-btn").addEventListener("click", () => {
+          if (this.traceActive) {
+            this.stopTrace();
+          } else {
+            this.startTrace();
+          }
+        });
+
+        document.getElementById("trace-next-btn").addEventListener("click", () => {
+          this.showTraceStep((this.traceIndex + 1) % MODEL.traceSteps.length);
+        });
+
+        document.getElementById("trace-prev-btn").addEventListener("click", () => {
+          this.showTraceStep((this.traceIndex - 1 + MODEL.traceSteps.length) % MODEL.traceSteps.length);
+        });
+
+        document.getElementById("trace-stop-btn").addEventListener("click", () => this.stopTrace());
+
+        // Theme Toggle
+        document.getElementById("theme-toggle-btn").addEventListener("click", () => {
+          const current = document.documentElement.getAttribute("data-theme") || "dark";
+          const next = current === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          localStorage.setItem("guardsaab_theme", next);
+        });
+
+        // Restore theme
+        const savedTheme = localStorage.getItem("guardsaab_theme");
+        if (savedTheme) {
+          document.documentElement.setAttribute("data-theme", savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+
+        // A11y Modal
+        document.getElementById("a11y-modal-btn").addEventListener("click", () => {
+          document.getElementById("a11y-modal").classList.add("open");
+        });
+
+        document.getElementById("a11y-close-btn").addEventListener("click", () => {
+          document.getElementById("a11y-modal").classList.remove("open");
+        });
+
+        // Esc key closes panels
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            this.sideDrawer.classList.remove("open");
+            document.getElementById("a11y-modal").classList.remove("open");
+            if (this.traceActive) this.stopTrace();
+          }
+        });
+      }
+    }
+
+    // Initialize on page load
+    let app;
+    window.addEventListener("DOMContentLoaded", () => {
+      app = new DiagramController();
+    });
+  </script>
+</body>
+</html>

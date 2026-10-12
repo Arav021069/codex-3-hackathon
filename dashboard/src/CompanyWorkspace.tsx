@@ -335,12 +335,56 @@ export function CompanyWorkspace() {
   </main>;
   return <div className="company-shell">
     <header className="company-top">
-      <div className="company-brand"><span className="company-monogram">N</span><span><b>NORTHSTAR</b><small>WORKS · PEOPLE OPERATIONS</small></span></div>
-      <nav className="company-nav">{nav.map((n) => <button key={n} className={page === n ? 'selected' : ''} onClick={() => setPage(n)}>{n}{n === 'Requests' && pending.length > 0 && <i>{pending.length}</i>}</button>)}</nav>
-      <div className="company-top-actions">
+      <div className="company-brand">
+        <span className="company-monogram">N</span>
+        <div className="company-brand-text">
+          <b>NORTHSTAR</b>
+          <small>WORKS · PEOPLE OPERATIONS</small>
+        </div>
+      </div>
+      <nav className="company-nav" aria-label="Company navigation">
+        {nav.map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={page === n ? 'selected' : ''}
+            onClick={() => setPage(n)}
+          >
+            <span>{n}</span>
+            {n === 'Requests' && pending.length > 0 && <i className="company-nav-badge">{pending.length}</i>}
+          </button>
+        ))}
+      </nav>
+      <div className="company-top-right">
         <ThemeToggle portal="northstar" theme={theme} onToggle={toggleTheme} className="company-theme-toggle" />
-        <div className="company-user"><span>{user.displayName}</span><small>{role} · {user.username}</small><button onClick={signOut}>Sign out</button></div>
-        <button className="agent-toggle" onClick={() => setChatOpen((v) => !v)}>{chatOpen ? 'Hide Zeo' : 'Ask Zeo'}</button>
+        <div className="company-user">
+          <div className="company-user-avatar" aria-hidden="true">{user.displayName.slice(0, 1)}</div>
+          <div className="company-user-info">
+            <span className="company-user-name">{user.displayName}</span>
+            <span className="company-user-meta">
+              <span className="company-user-role">{role}</span>
+              <span className="company-user-sep">·</span>
+              <span className="company-user-handle">{user.username}</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            className="company-signout-btn"
+            onClick={signOut}
+            title="Sign out of Northstar Works"
+          >
+            Sign out
+          </button>
+        </div>
+        <button
+          type="button"
+          className={`agent-toggle ${chatOpen ? 'active' : ''}`}
+          onClick={() => setChatOpen((v) => !v)}
+          aria-expanded={chatOpen}
+        >
+          <span className="agent-toggle-dot" />
+          <span className="agent-toggle-label">{chatOpen ? 'Hide Zeo' : 'Ask Zeo'}</span>
+        </button>
       </div>
     </header>
     <div className="company-layout"><main className="company-main"><div className="company-heading"><div><div className="company-kicker">NORTHSTAR WORKS / {role.toUpperCase()} VIEW</div><h1>{page === 'Overview' ? `Good evening, ${user.displayName.split(' ')[0]}.` : page}</h1><p>{page === 'Overview' ? 'People, funds, and agent actions in one governed workspace.' : `Northstar Works · ${role} access`}</p></div></div>

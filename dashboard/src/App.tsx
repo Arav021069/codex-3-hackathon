@@ -23,17 +23,6 @@ const AGENTS = [
   { name: 'IT Operations Agent', dept: 'IT Operations', id: 'AG-004', status: 'Guarded', detail: 'Command inspection and deployment workflows' },
 ];
 
-function AuditRow({ entry, now }: { entry: AuditEntry; now: number }) {
-  const meta = EVENT_META[entry.event];
-  return <div className="ops-log-row"><span className="ops-event-type">{meta.label}</span><span className={`ops-decision ${entry.action === 'ALLOW' ? 'is-allowed' : entry.action === 'BLOCK' ? 'is-blocked' : ''}`}>{entry.action ?? (entry.viaHitl ? 'REVIEW' : '—')}</span><span className="ops-tool">{entry.tool ?? meta.label}</span><span className="ops-detail">{entry.ruleId ?? entry.reason}</span><time>{ago(entry.ts, now)}</time></div>;
-}
-
-function CompanyEventRow({ event, now }: { event: CompanyAuditEvent; now: number }) {
-  const status = event.outcome.toUpperCase();
-  const blocked = status.includes('BLOCK') || status.includes('REJECT');
-  const allowed = status.includes('ALLOW') || status.includes('COMPLETE') || status.includes('APPROV');
-  return <div className="ops-log-row"><span className="ops-event-type">{event.actor}</span><span className={`ops-decision ${blocked ? 'is-blocked' : allowed ? 'is-allowed' : 'is-review'}`}>{event.outcome}</span><span className="ops-tool">{event.action}{event.requestId ? ` · ${event.requestId}` : ''}</span><span className="ops-detail">{event.detail}</span><time>{ago(event.time, now)}</time></div>;
-}
 
 function SecurityApproval({ violation, now, onDecide }: { violation: SecurityViolation; now: number; onDecide: (id: string, action: 'ALLOW' | 'BLOCK') => void }) {
   const { title, body } = describe(violation.toolCall);
@@ -64,6 +53,11 @@ export default function App() {
   const [chainStatus, setChainStatus] = useState<AuditChainStatus | null>(null);
   const [chainEntries, setChainEntries] = useState<AuditChainEntry[]>([]);
   const [verifyingChain, setVerifyingChain] = useState(false);
+  const [verifySuccessFlash, setVerifySuccessFlash] = useState(false);
+  const [chainVerifyNotice, setChainVerifyNotice] = useState<{ type: 'success' | 'error'; message: string; timestamp: number } | null>(null);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'blocked' | 'approved' | 'pending' | 'info'>('all');
+  const [activitySort, setActivitySort] = useState<'time-desc' | 'time-asc' | 'decision-blocked' | 'decision-approved' | 'decision-pending' | 'actor-asc' | 'actor-desc'>('time-desc');
+  const [activitySearch, setActivitySearch] = useState('');
 
   const isGuardSaaBSite = window.location.port === '5174' || (window.location.port !== '5173' && window.location.pathname === '/guardsaab');
   const role = user?.role ?? null;
@@ -183,6 +177,131 @@ export default function App() {
   const allGatewayAudit = [...audit, ...chainedGatewayAudit].filter((entry, index, all) => all.findIndex((candidate) => candidate.ts === entry.ts && candidate.event === entry.event && candidate.requestId === entry.requestId && candidate.sessionId === entry.sessionId) === index).sort((a, b) => b.ts - a.ts);
   const blockedGatewayEvents = allGatewayAudit.filter((event) => event.action === 'BLOCK').length;
   const highRiskEvents = audit.filter((event) => event.event === 'injection-detected' || (event.risk?.score ?? 0) >= 70).length;
+
+  type ActivityLogItem = {
+    key: string;
+    timestamp: number;
+    actor: string;
+    decision: 'BLOCK' | 'ALLOW' | 'PENDING' | 'INFO';
+    rawOutcome: string;
+    action: string;
+    detail: string;
+    source: 'gateway' | 'company' | 'auth';
+  };
+
+  const unifiedActivityList = useMemo<ActivityLogItem[]>(() => {
+    const list: ActivityLogItem[] = [];
+
+    allGatewayAudit.forEach((entry, idx) => {
+      const meta = EVENT_META[entry.event];
+      const isBlocked = entry.action === 'BLOCK';
+      const isAllowed = entry.action === 'ALLOW';
+      const isPending = (entry.action as string) === 'ASK' || entry.event === 'hitl-opened' || Boolean(entry.viaHitl);
+      const decision: ActivityLogItem['decision'] = isBlocked ? 'BLOCK' : isAllowed ? 'ALLOW' : isPending ? 'PENDING' : 'INFO';
+
+      list.push({
+        key: `gw-${entry.ts}-${entry.requestId ?? entry.sessionId ?? idx}-${idx}`,
+        timestamp: entry.ts,
+        actor: meta?.label ?? 'Gateway event',
+        decision,
+        rawOutcome: entry.action ?? (entry.viaHitl ? 'REVIEW' : '—'),
+        action: entry.tool ?? meta?.label ?? 'Tool call',
+        detail: entry.ruleId ? `${entry.ruleId}${entry.reason ? ` · ${entry.reason}` : ''}` : (entry.reason ?? 'Policy evaluated'),
+        source: 'gateway',
+      });
+    });
+
+    visibleCompanyEvents.forEach((event, idx) => {
+      const status = event.outcome.toUpperCase();
+      const isBlocked = status.includes('BLOCK') || status.includes('REJECT');
+      const isAllowed = status.includes('ALLOW') || status.includes('COMPLETE') || status.includes('APPROV');
+      const isPending = status.includes('PENDING') || status.includes('HELD') || status.includes('REVIEW');
+      const decision: ActivityLogItem['decision'] = isBlocked ? 'BLOCK' : isAllowed ? 'ALLOW' : isPending ? 'PENDING' : 'INFO';
+
+      list.push({
+        key: `co-${event.id}-${event.time}-${idx}`,
+        timestamp: event.time,
+        actor: event.actor,
+        decision,
+        rawOutcome: event.outcome,
+        action: `${event.action}${event.requestId ? ` · ${event.requestId}` : ''}`,
+        detail: event.detail,
+        source: 'company',
+      });
+    });
+
+    authEvents.forEach((event, idx) => {
+      const isBlocked = event.outcome === 'BLOCKED';
+      const isAllowed = event.outcome === 'SIGNED IN';
+      const decision: ActivityLogItem['decision'] = isBlocked ? 'BLOCK' : isAllowed ? 'ALLOW' : 'INFO';
+
+      list.push({
+        key: `au-${event.id}-${event.time}-${idx}`,
+        timestamp: event.time,
+        actor: event.actor,
+        decision,
+        rawOutcome: event.outcome,
+        action: event.action,
+        detail: event.detail,
+        source: 'auth',
+      });
+    });
+
+    return list;
+  }, [allGatewayAudit, visibleCompanyEvents, authEvents]);
+
+  const activityCounts = useMemo(() => {
+    let blocked = 0;
+    let approved = 0;
+    let pending = 0;
+    let info = 0;
+    for (const item of unifiedActivityList) {
+      if (item.decision === 'BLOCK') blocked++;
+      else if (item.decision === 'ALLOW') approved++;
+      else if (item.decision === 'PENDING') pending++;
+      else info++;
+    }
+    return { all: unifiedActivityList.length, blocked, approved, pending, info };
+  }, [unifiedActivityList]);
+
+  const filteredActivityList = useMemo<ActivityLogItem[]>(() => {
+    let result = unifiedActivityList;
+
+    if (activityFilter === 'blocked') result = result.filter((i) => i.decision === 'BLOCK');
+    else if (activityFilter === 'approved') result = result.filter((i) => i.decision === 'ALLOW');
+    else if (activityFilter === 'pending') result = result.filter((i) => i.decision === 'PENDING');
+    else if (activityFilter === 'info') result = result.filter((i) => i.decision === 'INFO');
+
+    if (activitySearch.trim()) {
+      const q = activitySearch.toLowerCase();
+      result = result.filter((i) =>
+        i.actor.toLowerCase().includes(q) ||
+        i.action.toLowerCase().includes(q) ||
+        i.detail.toLowerCase().includes(q) ||
+        i.rawOutcome.toLowerCase().includes(q)
+      );
+    }
+
+    const priorityMap: Record<string, Record<string, number>> = {
+      'decision-blocked': { BLOCK: 0, PENDING: 1, ALLOW: 2, INFO: 3 },
+      'decision-approved': { ALLOW: 0, PENDING: 1, BLOCK: 2, INFO: 3 },
+      'decision-pending': { PENDING: 0, BLOCK: 1, ALLOW: 2, INFO: 3 },
+    };
+
+    return [...result].sort((a, b) => {
+      if (activitySort === 'time-desc') return b.timestamp - a.timestamp;
+      if (activitySort === 'time-asc') return a.timestamp - b.timestamp;
+      if (activitySort === 'actor-asc') return a.actor.localeCompare(b.actor);
+      if (activitySort === 'actor-desc') return b.actor.localeCompare(a.actor);
+
+      const map = priorityMap[activitySort];
+      if (map) {
+        const diff = (map[a.decision] ?? 4) - (map[b.decision] ?? 4);
+        if (diff !== 0) return diff;
+      }
+      return b.timestamp - a.timestamp;
+    });
+  }, [unifiedActivityList, activityFilter, activitySearch, activitySort]);
   const signIn = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setLoginError(''); setLoggingIn(true);
     try {
@@ -244,14 +363,48 @@ export default function App() {
     }
   };
   const verifyChain = async () => {
+    if (verifyingChain) return;
     setVerifyingChain(true);
+    setChainVerifyNotice(null);
     try {
       const response = await fetch('/audit-chain/verify', { method: 'POST' });
       const data = await response.json() as { status?: AuditChainStatus; error?: string };
-      if (data.status) setChainStatus(data.status);
-      else setChainStatus((status) => status ? { ...status, verified: false, error: data.error ?? 'Verification failed.' } : null);
-    } catch { setChainStatus((status) => status ? { ...status, verified: false, error: 'Could not reach the local audit store.' } : null); }
-    finally { setVerifyingChain(false); }
+      if (response.ok && data.status) {
+        setChainStatus(data.status);
+        setVerifySuccessFlash(true);
+        setTimeout(() => setVerifySuccessFlash(false), 4000);
+        setChainVerifyNotice({
+          type: data.status.verified ? 'success' : 'error',
+          message: data.status.verified
+            ? `Cryptographic audit chain verified: ${data.status.count} chained records re-computed from genesis against SHA-256 HMAC checkpoint. Zero tampering detected at ${new Date().toLocaleTimeString('en-IN')}.`
+            : `Integrity check failed: ${data.status.error ?? 'Hash mismatch detected in audit chain sequence.'}`,
+          timestamp: Date.now(),
+        });
+        const entriesRes = await fetch('/audit-chain', { signal: AbortSignal.timeout(4000) });
+        if (entriesRes.ok) {
+          const entriesData = await entriesRes.json() as { status: AuditChainStatus; entries: AuditChainEntry[] };
+          if (entriesData.entries) setChainEntries(entriesData.entries);
+        }
+      } else {
+        const errorMsg = data.error ?? (response.status === 401 ? 'GuardSaaB sign-in required to verify audit chain.' : 'Verification failed.');
+        setChainStatus((status) => status ? { ...status, verified: false, error: errorMsg } : null);
+        setChainVerifyNotice({
+          type: 'error',
+          message: errorMsg,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Could not reach the local audit store.';
+      setChainStatus((status) => status ? { ...status, verified: false, error: errorMsg } : null);
+      setChainVerifyNotice({
+        type: 'error',
+        message: `Connection error: ${errorMsg}`,
+        timestamp: Date.now(),
+      });
+    } finally {
+      setVerifyingChain(false);
+    }
   };
   const exportAudit = async () => {
     try {
@@ -347,7 +500,13 @@ export default function App() {
       <a className="ops-logo" href="/guardsaab" aria-label="GuardSaaB console"><img src={guardsaabLogoSrc} alt="GuardSaaB"/></a>
       <div className="ops-workspace"><span className="ops-workspace-mark">N</span><span><b>Northstar Works</b><small>Governance console</small></span><i>⌄</i></div>
       <span className="ops-nav-label">WORKSPACE</span>
-      <nav className="ops-nav">{nav.map((item) => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => setPage(item.id)}><span className="ops-nav-mark">{item.mark}</span>{item.label}{item.id === 'approvals' && totalApprovals > 0 && <i>{totalApprovals}</i>}</button>)}</nav>
+      <nav className="ops-nav">
+        {nav.map((item) => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => setPage(item.id)}><span className="ops-nav-mark">{item.mark}</span>{item.label}{item.id === 'approvals' && totalApprovals > 0 && <i>{totalApprovals}</i>}</button>)}
+        <a href="/architecture.html" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '11px', height: '36px', padding: '0 11px', color: '#93a8ac', textDecoration: 'none', fontSize: '10px', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <span className="ops-nav-mark" style={{ color: '#F59E0B' }}>🏛</span>
+          <span style={{ color: '#F1F5F9', fontWeight: 600 }}>Architecture Spec ↗</span>
+        </a>
+      </nav>
       <div className="ops-sidebar-bottom"><span className="ops-nav-label">SIGNED IN</span><div className="ops-user"><span>{role.slice(0, 1)}</span><div><b>{user.displayName}</b><small>{role} · {user.username}</small></div></div><button className="ops-signout" onClick={signOut}>Sign out</button></div>
     </aside>
     <div className="ops-main-shell">
@@ -372,11 +531,157 @@ export default function App() {
         {page === 'approvals' && <><div className="ops-page-heading"><div><span className="ops-eyebrow">HUMAN REVIEW QUEUE</span><h1>Approvals</h1><p>Review company fund requests and sensitive agent actions before execution.</p></div><span className="ops-count-pill">{totalApprovals} pending</span></div>{companyDecisionFeedback && <p className="ops-chain-error" role="status">{companyDecisionFeedback}</p>}{companyApprovals.length + pending.length === 0 ? <section className="ops-empty-panel"><span>✓</span><h2>Nothing needs review</h2><p>Requests above the automatic policy limits will appear in this queue.</p></section> : <div className="ops-approval-grid">{companyApprovals.map((request)=>{const duplicateOf=request.kind==='QUOTA_INCREASE'?undefined:companyDemo?.requests.find((candidate)=>candidate.id!==request.id&&candidate.employeeId===request.employeeId&&candidate.kind!=='QUOTA_INCREASE'&&candidate.status==='APPROVED'&&candidate.amount===request.amount&&candidate.purpose.normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim()===request.purpose.normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim())?.id;return <CompanyApproval key={request.id} request={request} employeeName={companyDemo?.employees.find((employee)=>employee.id===request.employeeId)?.name ?? request.employeeId} role={role} onDecide={decideCompany} busy={companyDecisionBusy===request.id} duplicateOf={request.duplicateOf??duplicateOf}/>})}{pending.map((violation)=><SecurityApproval key={violation.id} violation={violation} now={now} onDecide={decide}/>)}</div>}</>}
         {page === 'activity' && <><div className="ops-page-heading"><div><span className="ops-eyebrow">AUDIT &amp; POLICY EVENTS</span><h1>Activity logs</h1><p>Company workflows, account access, and every event received by the local agent gateway.</p></div><span className="ops-live-badge"><i/>{connected ? 'STREAMING' : 'OFFLINE'}</span></div>
           <section className={`ops-panel ops-chain-panel ${chainStatus?.enabled ? (chainStatus.verified ? 'is-verified' : 'is-invalid') : 'is-disabled'}`}>
-            <div className="ops-chain-summary"><div><span className="ops-eyebrow">LOCAL POSTGRESQL · HMAC SHA-256</span><h2>{chainStatus?.enabled ? chainStatus.verified ? 'Audit chain verified' : 'Integrity check failed' : 'Audit chain unavailable'}</h2><p>{chainStatus?.enabled ? `${chainStatus.count.toLocaleString()} chained events · local checkpoint ${chainStatus.checkpointSeq.toLocaleString()}` : 'Start the local PostgreSQL service and run the engine with npm run engine:local to persist and verify logs.'}</p>{chainStatus?.error && <p className="ops-chain-error">{chainStatus.error}</p>}</div><div className="ops-chain-actions"><button disabled={!chainStatus?.enabled || verifyingChain} onClick={() => void verifyChain()}>{verifyingChain ? 'Verifying…' : 'Verify chain'}</button><button disabled={!chainStatus?.enabled} onClick={() => void exportAudit()}>Export sanitized log</button></div></div>
+            <div className="ops-chain-summary">
+              <div>
+                <span className="ops-eyebrow">LOCAL POSTGRESQL · HMAC SHA-256</span>
+                <h2>{chainStatus?.enabled ? chainStatus.verified ? 'Audit chain verified' : 'Integrity check failed' : 'Audit chain unavailable'}</h2>
+                <p>{chainStatus?.enabled ? `${chainStatus.count.toLocaleString()} chained events · local checkpoint ${chainStatus.checkpointSeq.toLocaleString()}` : 'Start the local PostgreSQL service and run the engine with npm run engine:local to persist and verify logs.'}</p>
+                {chainStatus?.error && <p className="ops-chain-error">{chainStatus.error}</p>}
+              </div>
+              <div className="ops-chain-actions">
+                <button
+                  type="button"
+                  className={verifySuccessFlash ? 'is-verified' : ''}
+                  disabled={!chainStatus?.enabled || verifyingChain}
+                  onClick={() => void verifyChain()}
+                >
+                  {verifyingChain ? 'Verifying…' : verifySuccessFlash ? '✓ Chain Verified' : 'Verify chain'}
+                </button>
+                <button type="button" disabled={!chainStatus?.enabled} onClick={() => void exportAudit()}>
+                  Export sanitized log
+                </button>
+              </div>
+            </div>
+            {chainVerifyNotice && (
+              <div className={`ops-chain-notice ${chainVerifyNotice.type}`} role="status">
+                <span className="notice-icon">{chainVerifyNotice.type === 'success' ? '🛡' : '⚠'}</span>
+                <span>{chainVerifyNotice.message}</span>
+              </div>
+            )}
             {chainStatus?.enabled && <div className="ops-chain-meta"><span>HEAD HASH</span><code title={chainStatus.headHash ?? ''}>{chainStatus.headHash ?? 'No records yet'}</code><span>LAST CHECKED</span><time>{new Date(chainStatus.checkedAt).toLocaleString('en-IN')}</time></div>}
             {chainStatus?.enabled && <div className="ops-chain-entries">{chainEntries.slice(0,5).map((entry)=><div key={entry.id}><b>#{entry.seq} · {entry.stream === 'gateway' ? 'Gateway event' : entry.stream === 'auth' ? 'Account activity' : 'Company workflow'}</b><code>{entry.hash.slice(0,22)}…</code><time>{new Date(entry.recordedAt).toLocaleString('en-IN')}</time></div>)}</div>}
           </section>
-          <section className="ops-panel ops-activity-panel"><div className="ops-activity-head"><span>EVENT / ACTOR</span><span>DECISION</span><span>ACTION</span><span>DETAIL</span><span>WHEN</span></div>{allGatewayAudit.map((event,index)=><AuditRow key={`${event.ts}-${event.requestId ?? event.sessionId}-${index}`} entry={event} now={now}/>)}{visibleCompanyEvents.map((event)=><CompanyEventRow key={event.id} event={event} now={now}/>)}{authEvents.map((event)=><CompanyEventRow key={event.id} event={event} now={now}/>)}{allGatewayAudit.length===0&&visibleCompanyEvents.length===0&&authEvents.length===0&&<div className="ops-empty">No activity has been recorded yet.</div>}</section></>}
+
+          <div className="ops-activity-toolbar">
+            <div className="ops-filter-pills" role="tablist" aria-label="Filter activity records">
+              <button
+                type="button"
+                className={`ops-pill-btn ${activityFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setActivityFilter('all')}
+              >
+                All records <i>{activityCounts.all}</i>
+              </button>
+              <button
+                type="button"
+                className={`ops-pill-btn blocked ${activityFilter === 'blocked' ? 'active' : ''}`}
+                onClick={() => setActivityFilter('blocked')}
+              >
+                <span className="dot blocked" /> Blocked <i>{activityCounts.blocked}</i>
+              </button>
+              <button
+                type="button"
+                className={`ops-pill-btn approved ${activityFilter === 'approved' ? 'active' : ''}`}
+                onClick={() => setActivityFilter('approved')}
+              >
+                <span className="dot approved" /> Approved / Allowed <i>{activityCounts.approved}</i>
+              </button>
+              <button
+                type="button"
+                className={`ops-pill-btn pending ${activityFilter === 'pending' ? 'active' : ''}`}
+                onClick={() => setActivityFilter('pending')}
+              >
+                <span className="dot pending" /> Pending / Review <i>{activityCounts.pending}</i>
+              </button>
+            </div>
+
+            <div className="ops-activity-controls">
+              <div className="ops-search-box">
+                <input
+                  type="text"
+                  placeholder="Filter actor, tool, detail…"
+                  value={activitySearch}
+                  onChange={(e) => setActivitySearch(e.target.value)}
+                  aria-label="Filter activity records"
+                />
+                {activitySearch && (
+                  <button type="button" onClick={() => setActivitySearch('')} title="Clear filter">×</button>
+                )}
+              </div>
+
+              <div className="ops-sort-select-wrap">
+                <label htmlFor="activity-sort-select">Sort:</label>
+                <select
+                  id="activity-sort-select"
+                  value={activitySort}
+                  onChange={(e) => setActivitySort(e.target.value as any)}
+                >
+                  <option value="time-desc">Most recent</option>
+                  <option value="time-asc">Oldest first</option>
+                  <option value="decision-blocked">Blocked first</option>
+                  <option value="decision-approved">Approved first</option>
+                  <option value="decision-pending">Pending first</option>
+                  <option value="actor-asc">Actor (A → Z)</option>
+                  <option value="actor-desc">Actor (Z → A)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <section className="ops-panel ops-activity-panel">
+            <div className="ops-activity-head">
+              <button
+                type="button"
+                className="head-btn"
+                onClick={() => setActivitySort((s) => s === 'actor-asc' ? 'actor-desc' : 'actor-asc')}
+                title="Sort by Event or Actor"
+              >
+                EVENT / ACTOR {activitySort === 'actor-asc' ? '▲' : activitySort === 'actor-desc' ? '▼' : '⇅'}
+              </button>
+              <button
+                type="button"
+                className="head-btn"
+                onClick={() => setActivitySort((s) => s === 'decision-blocked' ? 'decision-approved' : s === 'decision-approved' ? 'decision-pending' : 'decision-blocked')}
+                title="Sort by Decision"
+              >
+                DECISION {activitySort === 'decision-blocked' ? '▲ Blocked' : activitySort === 'decision-approved' ? '▲ Approved' : activitySort === 'decision-pending' ? '▲ Pending' : '⇅'}
+              </button>
+              <span>ACTION</span>
+              <span>DETAIL</span>
+              <button
+                type="button"
+                className="head-btn"
+                onClick={() => setActivitySort((s) => s === 'time-desc' ? 'time-asc' : 'time-desc')}
+                title="Sort by Timestamp"
+              >
+                WHEN {activitySort === 'time-desc' ? '▼' : activitySort === 'time-asc' ? '▲' : '⇅'}
+              </button>
+            </div>
+
+            {filteredActivityList.map((item) => (
+              <div className="ops-log-row" key={item.key}>
+                <span className="ops-event-type">{item.actor}</span>
+                <span className={`ops-decision ${item.decision === 'BLOCK' ? 'is-blocked' : item.decision === 'ALLOW' ? 'is-allowed' : item.decision === 'PENDING' ? 'is-review' : ''}`}>
+                  {item.rawOutcome}
+                </span>
+                <span className="ops-tool">{item.action}</span>
+                <span className="ops-detail">{item.detail}</span>
+                <time>{ago(item.timestamp, now)}</time>
+              </div>
+            ))}
+
+            {filteredActivityList.length === 0 && (
+              <div className="ops-empty">
+                No activity records found matching the current criteria ({activityFilter !== 'all' ? `filter: ${activityFilter}` : ''}{activitySearch ? ` query: "${activitySearch}"` : ''}).
+                <button
+                  type="button"
+                  className="ops-reset-filter-btn"
+                  onClick={() => { setActivityFilter('all'); setActivitySearch(''); }}
+                >
+                  Reset filters
+                </button>
+              </div>
+            )}
+          </section></>}
         {page === 'sessions' && <><div className="ops-page-heading"><div><span className="ops-eyebrow">INVESTIGATION</span><h1>Agent sessions</h1><p>Follow an agent run from its first tool call to its final decision.</p></div></div><SessionsView audit={audit} now={now} initialSession={new URLSearchParams(window.location.search).get('session') ?? undefined}/></>}
       </main>
       <footer className="ops-footer"><span>GUARDSAAB GOVERNANCE · NORTHSTAR WORKS</span><span>{connected ? 'LOCAL GATEWAY CONNECTED' : 'LOCAL GATEWAY DISCONNECTED'}</span></footer>

@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GuardSaaB — System Architecture & Complete Product Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM: DEFENSE SPECIFICATION & UTILITY SYSTEM MANUAL (SLOP-FREE)
+       Palette: Tactical Obsidian, Hairline Steel, Amber Gate, Mint Verified, Vermilion Block
+       Typography: Space Grotesk (Headers), Plus Jakarta Sans (Body), JetBrains Mono (Tech/Code)
+       ========================================================================== */
+    :root {
+      --bg-base: #080A0E;
+      --bg-surface: #0E121A;
+      --bg-surface-elevated: #141A24;
+      --bg-surface-sunken: #05070A;
+      --border-subtle: #18202E;
+      --border-strong: #253044;
+      --border-focus: #3B4962;
+
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --text-faint: #64748B;
+
+      /* Intentional functional signals (No generic indigo/purple) */
+      --signal-amber: #D97706;
+      --signal-amber-glow: rgba(217, 119, 6, 0.12);
+      --signal-mint: #059669;
+      --signal-mint-glow: rgba(5, 150, 105, 0.12);
+      --signal-crimson: #DC2626;
+      --signal-crimson-glow: rgba(220, 38, 38, 0.12);
+      --signal-cyan: #0284C7;
+      --signal-cyan-glow: rgba(2, 132, 199, 0.12);
+
+      --font-display: 'Space Grotesk', -apple-system, sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --radius-sm: 2px;
+      --radius-md: 4px;
+      --radius-lg: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.6;
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Subtle architectural drafting grid texture */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      color: #FFFFFF;
+      line-height: 1.25;
+    }
+
+    h1 { font-size: 34px; letter-spacing: -0.03em; }
+    h2 { font-size: 22px; margin-bottom: 8px; }
+    h3 { font-size: 16px; margin-bottom: 6px; }
+    h4 { font-size: 12px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+
+    p { margin-bottom: 12px; color: var(--text-muted); }
+    strong { color: var(--text-main); font-weight: 600; }
+    code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      color: #F8FAFC;
+    }
+
+    /* TOP DOCK HEADER */
+    header {
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      padding: 14px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark .doc-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--signal-amber);
+      border-radius: var(--radius-sm);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .nav-links a:hover {
+      color: #FFFFFF;
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-subtle);
+    }
+
+    /* MAIN CONTAINER */
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px 32px 96px 32px;
+    }
+
+    /* HERO SPECIFICATION BLOCK */
+    .hero-spec {
+      display: grid;
+      grid-template-columns: 2.2fr 1fr;
+      gap: 24px;
+      padding: 32px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--signal-amber);
+      margin-bottom: 40px;
+      border-radius: var(--radius-md);
+    }
+
+    .hero-spec h1 {
+      margin-bottom: 12px;
+    }
+
+    .meta-dossier {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: center;
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      padding: 20px;
+      border-radius: var(--radius-sm);
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .meta-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .meta-key { color: var(--text-faint); text-transform: uppercase; }
+    .meta-val { color: #FFFFFF; font-weight: 600; }
+    .meta-val-accent { color: var(--signal-mint); font-weight: 600; }
+
+    /* SECTION LAYOUT */
+    .section-wrap {
+      margin-bottom: 56px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+    }
+
+    .section-index {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--signal-amber);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    /* ARCHITECTURE PIPELINE MAP (SLOP-FREE STRUCTURAL SCHEMATIC) */
+    .arch-schematic-wrap {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .pipeline-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .column-header {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pipeline-node {
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      position: relative;
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    .pipeline-node:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-surface-elevated);
+      transform: translateY(-1px);
+    }
+
+    .pipeline-node.active-inspect {
+      border-color: var(--signal-cyan);
+      background: var(--bg-surface-elevated);
+      outline: 1px solid var(--signal-cyan);
+    }
+
+    .node-category {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .cat-ingress { color: var(--signal-cyan); }
+    .cat-eval { color: var(--signal-amber); }
+    .cat-decision { color: #F1F5F9; }
+    .cat-storage { color: var(--signal-mint); }
+
+    .node-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 6px;
+    }
+
+    .node-summary {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 8px;
+    }
+
+    .node-path {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* DECISION BANDS SPLIT BAR */
+    .decision-bands-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .band-card {
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+
+    .band-card.allow { border-top: 3px solid var(--signal-mint); }
+    .band-card.audit { border-top: 3px solid var(--signal-cyan); }
+    .band-card.hitl { border-top: 3px solid var(--signal-amber); }
+    .band-card.block { border-top: 3px solid var(--signal-crimson); }
+
+    .band-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .band-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .band-card.allow .band-title { color: var(--signal-mint); }
+    .band-card.audit .band-title { color: var(--signal-cyan); }
+    .band-card.hitl .band-title { color: var(--signal-amber); }
+    .band-card.block .band-title { color: var(--signal-crimson); }
+
+    /* NODE INSPECTOR DRAWER */
+    .inspector-panel {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 20px 24px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .inspector-panel.open {
+      display: block;
+    }
+
+    .inspector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* TECHNICAL GRIDS & SPEC CARDS */
+    .spec-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .spec-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+
+    .spec-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+
+    .spec-card h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spec-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* TECHNICAL DATA TABLES */
+    .table-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    thead {
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding: 12px 18px;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 120ms ease;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    td {
+      padding: 14px 18px;
+      vertical-align: top;
+      color: var(--text-muted);
+    }
+
+    td strong {
+      display: block;
+      color: #FFFFFF;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+
+    .tag-real {
+      background: var(--signal-mint-glow);
+      color: var(--signal-mint);
+      border: 1px solid rgba(5, 150, 105, 0.3);
+    }
+
+    .tag-sim {
+      background: var(--signal-amber-glow);
+      color: var(--signal-amber);
+      border: 1px solid rgba(217, 119, 6, 0.3);
+    }
+
+    /* CODE TERMINAL SNIPPET */
+    .code-terminal {
+      background: var(--bg-surface-sunken);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 16px;
+      overflow-x: auto;
+      color: #CBD5E1;
+      line-height: 1.55;
+    }
+
+    .code-terminal .comment { color: var(--text-faint); }
+    .code-terminal .keyword { color: var(--signal-amber); }
+    .code-terminal .string { color: var(--signal-mint); }
+    .code-terminal .num { color: var(--signal-cyan); }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 24px 32px;
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1100px) {
+      .pipeline-grid { grid-template-columns: repeat(2, 1fr); }
+      .decision-bands-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero-spec { grid-template-columns: 1fr; }
+      .spec-grid-2 { grid-template-columns: 1fr; }
+      .spec-grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div class="brand-mark">
+        <h2>GuardSaaB</h2>
+        <span class="doc-tag">System Architecture &amp; Product Manual</span>
+      </div>
+      <nav class="nav-links" aria-label="Documentation Sections">
+        <a href="#architecture-map">01. Architecture Map</a>
+        <a href="#request-lifecycle">02. 4-Band Lifecycle</a>
+        <a href="#subsystems">03. Subsystems</a>
+        <a href="#reality-guide">04. Real vs. Mock</a>
+        <a href="#roadmap">05. Production Roadmap</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- SECTION: HERO SPECIFICATION DOSSIER -->
+    <section class="hero-spec">
+      <div>
+        <div class="section-index">Product Engineering Guide · v0.1.0</div>
+        <h1>GuardSaaB Architecture &amp; System Reference Manual</h1>
+        <p>
+          GuardSaaB is a <strong>local-first AI agent security control plane</strong>. It functions as an external, deterministic pre-execution gatekeeper for autonomous developer agents (Claude Code, Codex CLI, Cursor, Cline). It intercepts tool invocations prior to execution, evaluates multi-layered declarative policies, calculates contextual risk, and holds high-impact actions for human authorization.
+        </p>
+        <p>
+          This manual serves as the technical single source of truth for the product. Every component, decision pathway, database trigger, and limitation described herein maps 1:1 to verified code in this repository.
+        </p>
+      </div>
+      <div class="meta-dossier">
+        <div class="meta-row">
+          <span class="meta-key">Engine Gateway</span>
+          <span class="meta-val">127.0.0.1:9000 (HTTP/WS)</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-key">Corporate Portal</span>
+          <span class="meta-val">127.0.0.1:5173 (Northstar)</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-key">Governance Console</span>
+          <span class="meta-val">127.0.0.1:5174 (GuardSaaB)</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-key">Audit Store</span>
+          <span class="meta-val-accent">PostgreSQL 16 (HMAC Chain)</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-key">Decision Model</span>
+          <span class="meta-val">Deterministic 4-Band Gate</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 01: ARCHITECTURE MAP -->
+    <section class="section-wrap" id="architecture-map">
+      <div class="section-head">
+        <div>
+          <div class="section-index">System Architecture · Ground Truth</div>
+          <h2>Interactive Architectural Pipeline Map</h2>
+        </div>
+        <h4>Click any block to inspect file location &amp; implementation logic</h4>
+      </div>
+
+      <!-- LIVE ANIMATED INTERACTIVE CANVAS EMBED -->
+      <div class="flowchart-embed-card" style="margin-bottom: 28px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; background: #0a0d14; box-shadow: 0 12px 32px rgba(0,0,0,0.45);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-surface-elevated); border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+            <span style="font-family: var(--font-display); font-size: 13px; font-weight: 600; color: #FFFFFF; letter-spacing: -0.01em;">Live Animated Architecture Canvas</span>
+            <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); padding: 2px 6px; background: var(--bg-surface-sunken); border: 1px solid var(--border-subtle); border-radius: 2px;">Mermaid Ground Truth (22 Nodes · 25 Edges)</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <a href="/flowchart" target="_blank" rel="noopener noreferrer" style="font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: #38bdf8; text-decoration: none; padding: 5px 12px; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 4px; background: rgba(56, 189, 248, 0.08); display: flex; align-items: center; gap: 6px;">
+              <span>Open Dedicated Fullscreen</span>
+              <span>↗</span>
+            </a>
+          </div>
+        </div>
+        <iframe src="/flowchart" title="GuardSaaB Interactive Animated Architecture Flowchart" style="width: 100%; height: 720px; border: none; display: block;" loading="lazy"></iframe>
+      </div>
+
+      <div class="arch-schematic-wrap">
+        <div class="pipeline-grid">
+          
+          <!-- COL 1: CLIENT & INGESTION -->
+          <div class="pipeline-column">
+            <div class="column-header">
+              <span>01. Ingestion Layer</span>
+              <code>Pre-Flight</code>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('codex-hook')">
+              <div class="node-category cat-ingress">Client Gate</div>
+              <div class="node-title">Codex CLI Python Hook</div>
+              <div class="node-summary">PreToolUse regex interceptor denying destructive shell shapes (rm -rf, git reset).</div>
+              <div class="node-path">scripts/guardsaab_codex_hook.py</div>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('claude-hook')">
+              <div class="node-category cat-ingress">Client Gate</div>
+              <div class="node-title">Claude Code Adapter</div>
+              <div class="node-summary">Native adapter translating tool payloads to normalized MCP call schema.</div>
+              <div class="node-path">src/hook/adapters.ts</div>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('cswsh-guard')">
+              <div class="node-category cat-ingress">Security Boundary</div>
+              <div class="node-title">Origin &amp; CSWSH Guard</div>
+              <div class="node-summary">Validates loopback Origin to block Cross-Site WebSocket Hijacking from browser tabs.</div>
+              <div class="node-path">src/engine/server.ts: originAllowed()</div>
+            </div>
+          </div>
+
+          <!-- COL 2: EVALUATION & RISK -->
+          <div class="pipeline-column">
+            <div class="column-header">
+              <span>02. Policy Engine</span>
+              <code>Deterministic</code>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('jsonlogic-policy')">
+              <div class="node-category cat-eval">Policy Layer</div>
+              <div class="node-title">JsonLogic Engine</div>
+              <div class="node-summary">Pure mathematical rule evaluation from YAML schemas without non-deterministic LLM drift.</div>
+              <div class="node-path">src/policy/jsonlogic.ts · default_policy.yaml</div>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('risk-engine')">
+              <div class="node-category cat-eval">Risk Assessment</div>
+              <div class="node-title">Contextual Risk Engine</div>
+              <div class="node-summary">Evaluates call velocity, command loop repetition, and sensitive path access TTL.</div>
+              <div class="node-path">src/risk/index.ts · src/signals/</div>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('secret-scanner')">
+              <div class="node-category cat-eval">DLP Filter</div>
+              <div class="node-title">Secret Redaction Scanner</div>
+              <div class="node-summary">Detects AWS keys, GitHub tokens, and private keys in parameters before ledger writes.</div>
+              <div class="node-path">src/audit/sanitize.ts</div>
+            </div>
+          </div>
+
+          <!-- COL 3: ARBITRATION & HITL -->
+          <div class="pipeline-column">
+            <div class="column-header">
+              <span>03. Gate &amp; HITL</span>
+              <code>Arbitration</code>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('decision-router')">
+              <div class="node-category cat-decision">Arbitration</div>
+              <div class="node-title">4-Band Decision Router</div>
+              <div class="node-summary">Aggregates policy + risk score into ALLOW, AUDIT, HITL, or BLOCK verdict.</div>
+              <div class="node-path">src/engine/server.ts: FinalAction</div>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('socket-hold')">
+              <div class="node-category cat-decision">Suspension</div>
+              <div class="node-title">Socket Hold (120s TTL)</div>
+              <div class="node-summary">Suspends agent HTTP/WS connection in memory while waiting for human authorization.</div>
+              <div class="node-path">src/engine/server.ts: pendingContexts</div>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('human-console')">
+              <div class="node-category cat-decision">Human Governance</div>
+              <div class="node-title">GuardSaaB Console (:5174)</div>
+              <div class="node-summary">Role-scoped approvals (HR &le; ₹100k, CEO &gt; ₹100k) resolving held socket to ALLOW/BLOCK.</div>
+              <div class="node-path">dashboard/src/App.tsx</div>
+            </div>
+          </div>
+
+          <!-- COL 4: EXECUTION & STORAGE -->
+          <div class="pipeline-column">
+            <div class="column-header">
+              <span>04. Execution &amp; Ledger</span>
+              <code>Immutable</code>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('client-execution')">
+              <div class="node-category cat-storage">Host Execution</div>
+              <div class="node-title">Client-Side OS Execution</div>
+              <div class="node-summary">Agent executes tool locally on host OS only after receiving ALLOW permission.</div>
+              <div class="node-path">Local Shell (Claude / Codex Host)</div>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('audit-merkle')">
+              <div class="node-category cat-storage">Cryptographic Chain</div>
+              <div class="node-title">SHA-256 Merkle Ledger</div>
+              <div class="node-summary">Rolling previous_hash chaining linking all decisions into an unalterable chain.</div>
+              <div class="node-path">src/db/audit-store.ts: guardsaab_audit_chain</div>
+            </div>
+
+            <div class="pipeline-node" onclick="inspectNode('db-triggers')">
+              <div class="node-category cat-storage">Immutability</div>
+              <div class="node-title">PostgreSQL SQL Triggers</div>
+              <div class="node-summary">Trigger functions strictly rejecting all SQL UPDATE or DELETE queries on audit rows.</div>
+              <div class="node-path">src/db/audit-store.ts lines 55-65</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 4 DECISION BANDS -->
+        <div class="decision-bands-grid">
+          <div class="band-card allow">
+            <div class="band-head">
+              <span class="band-title">ALLOW</span>
+              <code>action=ALLOW</code>
+            </div>
+            <p style="font-size:12px; margin:0; color:var(--text-muted);">
+              Command or tool passes all policy rules and presents low risk. Returned immediately to agent client; executes without human interruption.
+            </p>
+          </div>
+
+          <div class="band-card audit">
+            <div class="band-head">
+              <span class="band-title">AUDIT</span>
+              <code>action=ALLOW (Flagged)</code>
+            </div>
+            <p style="font-size:12px; margin:0; color:var(--text-muted);">
+              Tool is unblocked so developers stay productive, but the call is flagged with high audit priority in the tamper-evident chain for compliance review.
+            </p>
+          </div>
+
+          <div class="band-card hitl">
+            <div class="band-head">
+              <span class="band-title">HITL (Ask)</span>
+              <code>action=HELD (TTL: 120s)</code>
+            </div>
+            <p style="font-size:12px; margin:0; color:var(--text-muted);">
+              Socket is held open. The call appears in the GuardSaaB Console approval queue. Fails closed (blocks) if timeout expires without human approval.
+            </p>
+          </div>
+
+          <div class="band-card block">
+            <div class="band-head">
+              <span class="band-title">BLOCK</span>
+              <code>action=BLOCK</code>
+            </div>
+            <p style="font-size:12px; margin:0; color:var(--text-muted);">
+              Violates mandatory deny rules (destructive deletions, credential theft, sensitive directories). Gateway denies request and explains reason.
+            </p>
+          </div>
+        </div>
+
+        <!-- DYNAMIC NODE INSPECTOR -->
+        <div class="inspector-panel" id="inspector">
+          <div class="inspector-header">
+            <div>
+              <h3 id="insp-title" style="margin:0;">Component Inspector</h3>
+              <span id="insp-path" style="font-family:var(--font-mono); font-size:11px; color:var(--signal-cyan);"></span>
+            </div>
+            <button onclick="closeInspector()" style="background:transparent; border:1px solid var(--border-subtle); color:var(--text-muted); padding:4px 10px; cursor:pointer; font-family:var(--font-mono); font-size:11px; border-radius:var(--radius-sm);">ESC ✕</button>
+          </div>
+          <p id="insp-desc" style="font-size:13px; color:var(--text-main); margin-bottom:12px;"></p>
+          <div class="code-terminal" id="insp-code"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 02: REQUEST LIFECYCLE & EXAMPLES -->
+    <section class="section-wrap" id="request-lifecycle">
+      <div class="section-head">
+        <div>
+          <div class="section-index">Execution Semantics</div>
+          <h2>Step-by-Step Tool Call Lifecycle</h2>
+        </div>
+      </div>
+
+      <div class="spec-grid-2">
+        <div class="spec-card">
+          <h3><span>01</span> Benign Read Operation (ALLOW Band)</h3>
+          <p>Agent initiates <code>Read file_path="src/index.ts"</code>.</p>
+          <div class="code-terminal">
+<span class="comment">// 1. Hook intercepts PreToolUse event</span>
+<span class="keyword">POST</span> /intercept { tool: <span class="string">"Read"</span>, input: { file_path: <span class="string">"src/index.ts"</span> } }
+
+<span class="comment">// 2. JsonLogic evaluates default_policy.yaml</span>
+Rule check: path !== <span class="string">".env"</span> && !is_secret_key &rarr; <span class="keyword">PASS</span>
+
+<span class="comment">// 3. Risk Engine calculates score</span>
+Velocity: 1 call/window (low) &rarr; Score: <span class="num">0.05</span>
+
+<span class="comment">// 4. Engine responds to client</span>
+HTTP <span class="num">200</span> { action: <span class="string">"ALLOW"</span>, band: <span class="string">"ALLOW"</span> }
+<span class="comment">// Result: Agent executes file read unblocked.</span>
+          </div>
+        </div>
+
+        <div class="spec-card">
+          <h3><span>02</span> High-Impact Action (HITL Approval Band)</h3>
+          <p>Agent initiates <code>Bash command="git push origin main"</code> or fund transfer &gt; ₹50,000.</p>
+          <div class="code-terminal">
+<span class="comment">// 1. Hook catches high-impact tool pattern</span>
+Rule hit: <span class="string">"hitl-git-push"</span> &rarr; Requires human sign-off
+
+<span class="comment">// 2. Gateway holds connection in memory</span>
+Socket held: requestId=<span class="string">"req-94182"</span>, ttlMs=<span class="num">120000</span>
+
+<span class="comment">// 3. Event pushed to GuardSaaB Console via WebSocket</span>
+Dashboard renders: <span class="string">"Human Review Queue: git push"</span>
+
+<span class="comment">// 4. Operator clicks [Approve]</span>
+POST /decision { violationId: <span class="string">"req-94182"</span>, action: <span class="string">"ALLOW"</span> }
+Socket resolves &rarr; HTTP <span class="num">200</span> { action: <span class="string">"ALLOW"</span> }
+<span class="comment">// Result: Held command proceeds to execute.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 03: SUBSYSTEMS REFERENCE -->
+    <section class="section-wrap" id="subsystems">
+      <div class="section-head">
+        <div>
+          <div class="section-index">Core Subsystems</div>
+          <h2>Detailed Architecture Specifications</h2>
+        </div>
+      </div>
+
+      <div class="spec-grid-3">
+        <div class="spec-card">
+          <h3>1. Deterministic Policy Engine</h3>
+          <p>
+            Unlike probabilistic LLM guardrails that hallucinate under load, GuardSaaB uses deterministic <strong>JsonLogic</strong> loaded from YAML.
+          </p>
+          <p>
+            Every rule specifies explicit precedence: mandatory block rules (destructive syntax, `.env`, private keys) execute first and cannot be overridden by risk score or prompt nuances.
+          </p>
+          <div class="node-path">File: src/policy/jsonlogic.ts</div>
+        </div>
+
+        <div class="spec-card">
+          <h3>2. Merkle Cryptographic Audit</h3>
+          <p>
+            Audit events are stored in PostgreSQL table <code>guardsaab_audit_chain</code>. Each row computes a SHA-256 digest over sequence, timestamp, payload, and the rolling <code>previous_hash</code>.
+          </p>
+          <p>
+            PostgreSQL triggers reject any SQL <code>UPDATE</code> or <code>DELETE</code> statements, creating an append-only verifiable cryptographic ledger.
+          </p>
+          <div class="node-path">File: src/db/audit-store.ts</div>
+        </div>
+
+        <div class="spec-card">
+          <h3>3. Dual Portal State Boundary</h3>
+          <p>
+            The engine simultaneously hosts two isolated frontends:
+          </p>
+          <p>
+            <strong>Northstar Works (:5173):</strong> Simulates an enterprise workplace with employee directory, fund requests, and Zeo AI assistant.<br>
+            <strong>GuardSaaB Console (:5174):</strong> Central governance cockpit monitoring telemetry, session replays, and approvals.
+          </p>
+          <div class="node-path">File: dashboard/src/App.tsx &amp; CompanyWorkspace.tsx</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 04: REAL VS MOCK REALITY GUIDE -->
+    <section class="section-wrap" id="reality-guide">
+      <div class="section-head">
+        <div>
+          <div class="section-index">Implementation Transparency</div>
+          <h2>Production Reality vs. Prototype Simulation Matrix</h2>
+        </div>
+        <h4>Audited against codebase commit HEAD</h4>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Subsystem</th>
+              <th>Status</th>
+              <th>Actual Implementation in Codebase</th>
+              <th>Engineering Boundary / Limitation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Policy Rule Evaluation</strong></td>
+              <td><span class="tag tag-real">Verified Real</span></td>
+              <td>Implemented in <a href="file:///c:/Users/BSetva/codex-hackathon/src/policy/jsonlogic.ts"><code>src/policy/jsonlogic.ts</code></a> using <code>json-logic-js</code> and YAML schemas.</td>
+              <td>Fully deterministic. Regexes are capped at 4,096 chars to prevent ReDoS.</td>
+            </tr>
+            <tr>
+              <td><strong>PreToolUse Interception Gate</strong></td>
+              <td><span class="tag tag-real">Verified Real</span></td>
+              <td>Python hook in <a href="file:///c:/Users/BSetva/codex-hackathon/scripts/guardsaab_codex_hook.py"><code>scripts/guardsaab_codex_hook.py</code></a> + Claude Code adapter in <a href="file:///c:/Users/BSetva/codex-hackathon/src/hook/adapters.ts"><code>src/hook/adapters.ts</code></a>.</td>
+              <td>Interception applies to tools invoked through the agent hook; does not capture commands executed by the developer directly in raw bash.</td>
+            </tr>
+            <tr>
+              <td><strong>PostgreSQL Audit Chain &amp; Triggers</strong></td>
+              <td><span class="tag tag-real">Verified Real</span></td>
+              <td>PostgreSQL table <code>guardsaab_audit_chain</code> with triggers blocking UPDATE and DELETE.</td>
+              <td>Cryptographic Merkle previous-hash linking. Prevents accidental or application-level row alteration.</td>
+            </tr>
+            <tr>
+              <td><strong>Secret Redaction Filter</strong></td>
+              <td><span class="tag tag-real">Verified Real</span></td>
+              <td>Automated scrubbing of AWS keys, GitHub PATs, and Bearer tokens in <a href="file:///c:/Users/BSetva/codex-hackathon/src/audit/sanitize.ts"><code>src/audit/sanitize.ts</code></a>.</td>
+              <td>Runs prior to database commit and log broadcast.</td>
+            </tr>
+            <tr>
+              <td><strong>Northstar Corporate Ledger</strong></td>
+              <td><span class="tag tag-sim">Simulated Mock</span></td>
+              <td>Ledger balances and quotas in <a href="file:///c:/Users/BSetva/codex-hackathon/dashboard/src/CompanyWorkspace.tsx"><code>CompanyWorkspace.tsx</code></a> stored in database JSON.</td>
+              <td>Educational simulation demonstrating corporate governance; no live bank, UPI, or payroll API is connected.</td>
+            </tr>
+            <tr>
+              <td><strong>Agent Workload Identity</strong></td>
+              <td><span class="tag tag-sim">Prototype Keying</span></td>
+              <td>Grouped by <code>sessionId</code> or workspace directory SHA-256 hash in <a href="file:///c:/Users/BSetva/codex-hackathon/src/engine/server.ts"><code>src/engine/server.ts</code></a>.</td>
+              <td>Agents lack cryptographic mTLS certificates or SPIFFE workload IDs. RBAC exists only for human web users (Employee, HR, CEO).</td>
+            </tr>
+            <tr>
+              <td><strong>OS-Level Sandboxing</strong></td>
+              <td><span class="tag tag-sim">Client-Dependent</span></td>
+              <td>Relies on client agent honoring the hook's return verdict. Execution occurs directly on host machine.</td>
+              <td>There is no kernel-level gVisor/eBPF sandbox wrapping the agent's shell execution.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 05: PRODUCTION ROADMAP -->
+    <section class="section-wrap" id="roadmap">
+      <div class="section-head">
+        <div>
+          <div class="section-index">Architectural Roadmap</div>
+          <h2>Hardening GuardSaaB for Production Deployment</h2>
+        </div>
+      </div>
+
+      <div class="spec-grid-2">
+        <div class="spec-card">
+          <h3><span>01</span> Kernel-Level Enforcement (eBPF &amp; Landlock)</h3>
+          <p>
+            <strong>Problem:</strong> Application-layer hooks rely on agent cooperation. A malicious or confused agent could unset environment variables or spawn child processes directly.
+          </p>
+          <p>
+            <strong>Solution:</strong> Enclose agent execution in Linux <strong>Landlock / eBPF syscall filters</strong> or micro-VMs (Firecracker / gVisor). Any unauthorized file modification or network socket is blocked by the kernel regardless of hook status.
+          </p>
+        </div>
+
+        <div class="spec-card">
+          <h3><span>02</span> Post-Tool Execution Attestation &amp; Diffing</h3>
+          <p>
+            <strong>Problem:</strong> Current tool hooks fire exclusively before execution (<code>PreToolUse</code>); GuardSaaB does not verify what the command actually produced.
+          </p>
+          <p>
+            <strong>Solution:</strong> Implement mandatory <code>PostToolUse</code> attestation that records exit codes, stdout hashes, and git filesystem diffs to prove command integrity.
+          </p>
+        </div>
+
+        <div class="spec-card">
+          <h3><span>03</span> Cryptographic Workload Identity (SPIFFE/mTLS)</h3>
+          <p>
+            <strong>Problem:</strong> Agent calls are keyed by ephemeral session IDs or working directory paths.
+          </p>
+          <p>
+            <strong>Solution:</strong> Issue short-lived <strong>X.509 SVID certificates</strong> to agent runtimes via SPIFFE/SPIRE, ensuring every tool call carries cryptographic proof of the agent's identity and codebase revision.
+          </p>
+        </div>
+
+        <div class="spec-card">
+          <h3><span>04</span> Hardware-Anchored Timestamping (RFC 3161)</h3>
+          <p>
+            <strong>Problem:</strong> Audit signing keys reside locally on the host machine.
+          </p>
+          <p>
+            <strong>Solution:</strong> Publish periodic Merkle root digests to an external RFC 3161 Timestamping Authority or Cloud KMS, establishing mathematical tamper-evidence even against a host administrator.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>GuardSaaB Architectural Specification &amp; Product Reference Manual</div>
+    <div>Verified against Commit HEAD · Cleanroom MIT/Apache-2.0 Stack</div>
+  </footer>
+
+  <script>
+    const NODE_DETAILS = {
+      'codex-hook': {
+        title: 'Codex CLI Python Hook (PreToolUse Interceptor)',
+        path: 'scripts/guardsaab_codex_hook.py',
+        desc: 'A native Python gate that inspects Bash tool calls before Codex runs them. Matches high-risk command patterns (rm -r, powershell recursive delete, git reset --hard) using regular expressions and returns permissionDecision: "deny" or "allow".',
+        code: `BLOCK_RULES = (
+    ("recursive_delete", re.compile(r"(?is)(?:^|[;&|]+\\s*)(?:\\S*/)?rm(?=[^;&|\\n]*\\s-[^\\s;&|]*r)[^;&|\\n]*"),
+     "Recursive deletion is blocked by the GuardSaaB policy."),
+    ("git_hard_reset", re.compile(r"(?is)\\bgit\\s+reset\\s+--hard\\b"),
+     "Git hard reset is blocked by the GuardSaaB policy.")
+)`
+      },
+      'claude-hook': {
+        title: 'Claude Code Adapter & Hook Contract',
+        path: 'src/hook/adapters.ts',
+        desc: 'Normalizes incoming Claude Code, Cursor, and Cline tool calls into a unified MCPToolCall structure. Fails closed by default if the GuardSaaB engine is unreachable unless AG_FAIL_OPEN=1 is set.',
+        code: `export function normalizeClaudeCall(payload: ClaudeToolPayload): MCPToolCall {
+  return {
+    tool: payload.tool_name,
+    input: payload.tool_input,
+    sessionId: payload.session_id,
+    cwd: payload.cwd
+  };
+}`
+      },
+      'cswsh-guard': {
+        title: 'Origin Verification & Cross-Site WebSocket Hijacking Guard',
+        path: 'src/engine/server.ts: originAllowed()',
+        desc: 'Restricts browser-originating requests to loopback hosts (127.0.0.1, localhost, [::1]). Non-browser clients (agent hooks, curl, tests) omit Origin and are permitted. Hostile browser tabs attempting CSWSH are rejected with HTTP 403.',
+        code: `function originAllowed(origin: string | undefined): boolean {
+  if (!origin) return true; // non-browser hook client
+  try {
+    const host = new URL(origin).hostname;
+    return host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === '[::1]';
+  } catch { return false; }
+}`
+      },
+      'jsonlogic-policy': {
+        title: 'Deterministic JsonLogic Policy Engine',
+        path: 'src/policy/jsonlogic.ts · rules/default_policy.yaml',
+        desc: 'Pure mathematical policy evaluator using json-logic-js. Evaluates structured rules loaded from YAML without probabilistic LLM drift. Mandatory block rules take absolute precedence over risk scoring.',
+        code: `export class JsonLogicPolicyEngine {
+  evaluate(call: MCPToolCall): PolicyVerdict {
+    // Evaluates mandatory deny rules, sensitive file rules, and high-impact actions
+    const allowed = jsonLogic.apply(this.rule, call);
+    return { action: allowed ? 'ALLOW' : 'BLOCK', ruleId: this.matchedRuleId };
+  }
+}`
+      },
+      'risk-engine': {
+        title: 'Contextual Risk & Behavioral Signals Engine',
+        path: 'src/risk/index.ts · src/signals/',
+        desc: 'Monitors runtime operational behavior: tracks call velocity per sliding window, identifies repeated command loops (e.g. agent stuck in a retry loop), and tracks recent access to sensitive file paths.',
+        code: `export class RiskEngine {
+  assess(call: MCPToolCall, session: SessionState): RiskAssessment {
+    const rateRisk = this.checkVelocity(session.callHistory);
+    const pathRisk = this.checkSensitivePath(call.input);
+    const score = computeCompositeRisk(rateRisk, pathRisk);
+    return { score, band: score > 0.8 ? 'HITL' : score > 0.5 ? 'AUDIT' : 'ALLOW' };
+  }
+}`
+      },
+      'secret-scanner': {
+        title: 'Secret Redaction Scanner',
+        path: 'src/audit/sanitize.ts',
+        desc: 'Inspects tool parameters and audit payloads for sensitive secrets (AWS Access Keys, GitHub PATs, Bearer tokens, private keys) and scrubs them prior to PostgreSQL insertion.',
+        code: `export function sanitizeAuditPayload(entry: AuditEntry): AuditEntry {
+  return redactSecrets(entry, [
+    /AKIA[0-9A-Z]{16}/g,        // AWS Access Key
+    /gh[pous]_[0-9a-zA-Z]{36}/g, // GitHub Token
+    /Bearer\\s+[A-Za-z0-9\\-_.]+/g // Bearer Token
+  ]);
+}`
+      },
+      'decision-router': {
+        title: '4-Band Decision Arbitration Router',
+        path: 'src/engine/server.ts: FinalAction',
+        desc: 'Arbitrates inputs from the policy engine and risk engine into one of four distinct outcome bands: ALLOW (benign), AUDIT (unblocked with alert), HITL (socket held for human approval), or BLOCK (denied).',
+        code: `export type FinalAction = 'ALLOW' | 'BLOCK';
+export type DecisionBand = 'ALLOW' | 'AUDIT' | 'HITL' | 'BLOCK';`
+      },
+      'socket-hold': {
+        title: 'HTTP / WebSocket Socket Hold (TTL: 120s)',
+        path: 'src/engine/server.ts: pendingContexts',
+        desc: 'When an action requires HITL review, the incoming HTTP or WebSocket connection is held open in memory up to 120,000ms. If an operator approves, the socket resolves with ALLOW. If the TTL expires without human approval, it fails closed (BLOCK).',
+        code: `const pending = new Promise<FinalAction>((resolve) => {
+  this.pendingContexts.set(violationId, { resolve, expiresAt: Date.now() + 120000 });
+});`
+      },
+      'human-console': {
+        title: 'GuardSaaB Governance Console (:5174)',
+        path: 'dashboard/src/App.tsx',
+        desc: 'React & Vite governance interface. Authenticated via HttpOnly session cookies with role-scoped authority (HR reviews requests up to ₹100,000; CEO reviews requests above ₹100,000). Resolves pending socket holds.',
+        code: `POST /decision { violationId: "req-104", action: "ALLOW" }
+// Engine unblocks the waiting agent client immediately.`
+      },
+      'client-execution': {
+        title: 'Host OS Execution Boundary (Client-Side)',
+        path: 'Local Shell (Ran by Claude Code / Codex CLI)',
+        desc: 'Crucial architectural reality: GuardSaaB is a pre-execution gatekeeper, NOT an execution sandbox. The third-party agent client executes the command on the host machine only after receiving the ALLOW verdict.',
+        code: `// GuardSaaB returns permissionDecision: "allow"
+// Agent client runs: /bin/bash -c "npm test"`
+      },
+      'audit-merkle': {
+        title: 'SHA-256 Merkle Audit Chain',
+        path: 'src/db/audit-store.ts: guardsaab_audit_chain',
+        desc: 'Computes a rolling SHA-256 hash linking each event to the previous row hash. If any row in the database is modified or deleted, verifyChain() detects sequence gaps or hash mismatches.',
+        code: `record_hash = sha256(sequence + ts + actor + action + payload + previous_hash);`
+      },
+      'db-triggers': {
+        title: 'PostgreSQL Trigger-Level Immutability',
+        path: 'src/db/audit-store.ts lines 55-65',
+        desc: 'Database trigger guardsaab_audit_immutable enforces that any SQL UPDATE or DELETE query on guardsaab_audit_chain triggers an uncatchable database exception, preserving audit history integrity.',
+        code: `CREATE OR REPLACE FUNCTION guardsaab_prevent_audit_tampering()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'Audit chain rows are immutable and cannot be updated or deleted.';
+END;
+$$ LANGUAGE plpgsql;`
+      }
+    };
+
+    function inspectNode(id) {
+      document.querySelectorAll('.pipeline-node').forEach(n => n.classList.remove('active-inspect'));
+      const details = NODE_DETAILS[id];
+      if (!details) return;
+
+      const panel = document.getElementById('inspector');
+      document.getElementById('insp-title').innerText = details.title;
+      document.getElementById('insp-path').innerText = details.path;
+      document.getElementById('insp-desc').innerText = details.desc;
+      document.getElementById('insp-code').innerHTML = details.code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      panel.classList.add('open');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function closeInspector() {
+      document.getElementById('inspector').classList.remove('open');
+      document.querySelectorAll('.pipeline-node').forEach(n => n.classList.remove('active-inspect'));
+    }
+  </script>
+</body>
+</html>
