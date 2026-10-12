@@ -23,6 +23,11 @@ expect('Bash `ls -la` → ALLOW', cmd('Bash', 'ls -la'), 'ALLOW', 'allow-readonl
 expect('Bash `rm -rf src` → BLOCK', cmd('Bash', 'rm -rf src'), 'BLOCK', 'block-rm-rf');
 expect('Bash `git push` → HITL', cmd('Bash', 'git push origin main'), 'HITL', 'hitl-git-push');
 expect('Bash `cat .env` → BLOCK', cmd('Bash', 'cat .env'), 'BLOCK', 'block-env-read-cmd');
+expect('Python fork bomb → BLOCK', cmd('Bash', 'python -c "import os\nwhile True: os.fork()"'), 'BLOCK', 'block-fork-bomb');
+expect('OS sysctl tweak → BLOCK', cmd('Bash', 'sysctl -w net.ipv4.ip_forward=1'), 'BLOCK', 'block-os-tweaks');
+expect('/etc/hosts overwrite → BLOCK', cmd('Bash', 'echo 127.0.0.1 example.com >> /etc/hosts'), 'BLOCK', 'block-os-tweaks');
+expect('Untrusted binary parser → HITL', cmd('Bash', 'binwalk downloaded-firmware.bin'), 'HITL', 'hitl-untrusted-binary-parser');
+expect('High parallel build → HITL', cmd('Bash', 'make -j 256'), 'HITL', 'hitl-resource-intensive-execution');
 
 // ── Windows / PowerShell (the fix) ──
 expect('PowerShell `Get-ChildItem -Force | …` → ALLOW', cmd('PowerShell', 'Get-ChildItem -Force | Select-Object Mode, Name'), 'ALLOW', 'allow-readonly-powershell');
