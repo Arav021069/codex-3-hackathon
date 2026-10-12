@@ -339,7 +339,13 @@ export default function App() {
       <a className="ops-logo" href="/guardsaab" aria-label="GuardSaaB console"><img src="/guardsaab-logo.svg" alt="GuardSaaB"/></a>
       <div className="ops-workspace"><span className="ops-workspace-mark">N</span><span><b>Northstar Works</b><small>Governance console</small></span><i>⌄</i></div>
       <span className="ops-nav-label">WORKSPACE</span>
-      <nav className="ops-nav">{nav.map((item) => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => setPage(item.id)}><span className="ops-nav-mark">{item.mark}</span>{item.label}{item.id === 'approvals' && totalApprovals > 0 && <i>{totalApprovals}</i>}</button>)}</nav>
+      <nav className="ops-nav">
+        {nav.map((item) => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => setPage(item.id)}><span className="ops-nav-mark">{item.mark}</span>{item.label}{item.id === 'approvals' && totalApprovals > 0 && <i>{totalApprovals}</i>}</button>)}
+        <a href="/architecture.html" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '11px', height: '36px', padding: '0 11px', color: '#93a8ac', textDecoration: 'none', fontSize: '10px', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <span className="ops-nav-mark" style={{ color: '#F59E0B' }}>🏛</span>
+          <span style={{ color: '#F1F5F9', fontWeight: 600 }}>Architecture Spec ↗</span>
+        </a>
+      </nav>
       <div className="ops-sidebar-bottom"><span className="ops-nav-label">SIGNED IN</span><div className="ops-user"><span>{role.slice(0, 1)}</span><div><b>{user.displayName}</b><small>{role} · {user.username}</small></div></div><button className="ops-signout" onClick={signOut}>Sign out</button></div>
     </aside>
     <div className="ops-main-shell">

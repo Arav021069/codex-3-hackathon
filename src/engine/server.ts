@@ -423,6 +423,22 @@ export class Engine {
         const m = /^\/sessions\/([^/]+)\/timeline\/?$/.exec(req.url.split('?')[0] ?? '');
         if (m) return json(res, 200, projectTimeline(this.audit.read(), decodeURIComponent(m[1] as string)));
       }
+      if (req.method === 'GET' && (req.url === '/architecture' || req.url === '/architecture.html')) {
+        const archPath = join(process.cwd(), 'docs', 'architecture.html');
+        if (existsSync(archPath)) {
+          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+          res.end(readFileSync(archPath));
+          return;
+        }
+      }
+      if (req.method === 'GET' && (req.url === '/flowchart' || req.url === '/architecture-flowchart.html')) {
+        const flowPath = join(process.cwd(), 'docs', 'architecture-flowchart.html');
+        if (existsSync(flowPath)) {
+          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+          res.end(readFileSync(flowPath));
+          return;
+        }
+      }
       // The dashboard (static) is served LAST, so it never shadows an API route (D20).
       if (req.method === 'GET' && this.opts.staticDir) {
         return this.serveStatic(req, res);
