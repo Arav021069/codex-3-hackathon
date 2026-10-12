@@ -7,6 +7,7 @@ import { CompanyWorkspace } from './CompanyWorkspace';
 import { COMPANY_DEMO_KEY, readCompanyAudit, readCompanyDemo } from './companyAudit';
 import type { CompanyAuditEvent, CompanyDemoRecord } from './companyAudit';
 import { ScenarioLab } from './ScenarioLab';
+import { useTheme, ThemeToggle } from './theme';
 
 type Role = 'HR' | 'CEO';
 type GuardSaaBUser = { username: string; displayName: string; role: Role };
@@ -36,6 +37,7 @@ function CompanyApproval({ request, employeeName, role, onDecide, busy, duplicat
 
 export default function App() {
   const { connected, pending, audit, decide } = useEngine();
+  const { theme, toggleTheme } = useTheme('guardsaab');
   const [user, setUser] = useState<GuardSaaBUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [username, setUsername] = useState('');
@@ -96,7 +98,7 @@ export default function App() {
     document.querySelector('meta[property="og:url"]')?.setAttribute('content', `${window.location.origin}${company ? '/' : '/guardsaab'}`);
     document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', title);
     document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', description);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', company ? '#101211' : '#071014');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', company ? (document.documentElement.classList.contains('light') ? '#f8fafc' : '#101211') : (theme === 'light' ? '#f8fafc' : '#071014'));
     let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (!icon) { icon = document.createElement('link'); icon.rel = 'icon'; document.head.append(icon); }
     icon.href = company ? '/northstar-icon.svg' : '/guardsaab-icon.svg';
@@ -414,12 +416,15 @@ export default function App() {
     } catch { setChainStatus((status) => status ? { ...status, error: 'Could not create the sanitized export. Check GuardSaaB sign-in and local PostgreSQL.' } : null); }
   };
 
+  const guardsaabLogoSrc = theme === 'light' ? '/guardsaab-logo-light.svg' : '/guardsaab-logo.svg';
+
   if (!isGuardSaaBSite) return <CompanyWorkspace />;
   if (authLoading) return <main className="guardsaab-login">
     <div className="guardsaab-login-glow" />
     <div className="guardsaab-login-card">
       <div className="guardsaab-login-header">
-        <img src="/guardsaab-logo.svg" alt="GuardSaaB" className="guardsaab-login-logo"/>
+        <img src={guardsaabLogoSrc} alt="GuardSaaB" className="guardsaab-login-logo"/>
+        <ThemeToggle portal="guardsaab" theme={theme} onToggle={toggleTheme} className="guardsaab-login-theme-toggle" />
       </div>
       <div className="guardsaab-loading-state">
         <div className="guardsaab-spinner" />
@@ -432,10 +437,13 @@ export default function App() {
     <div className="guardsaab-login-glow" />
     <div className="guardsaab-login-card">
       <div className="guardsaab-login-header">
-        <img src="/guardsaab-logo.svg" alt="GuardSaaB" className="guardsaab-login-logo"/>
-        <div className="guardsaab-status-badge">
-          <i className={connected ? 'connected' : ''} />
-          <span>{connected ? 'GATEWAY CONNECTED · 127.0.0.1:9000' : 'LOCAL GATEWAY OFFLINE'}</span>
+        <img src={guardsaabLogoSrc} alt="GuardSaaB" className="guardsaab-login-logo"/>
+        <div className="guardsaab-login-header-actions">
+          <div className="guardsaab-status-badge">
+            <i className={connected ? 'connected' : ''} />
+            <span>{connected ? 'GATEWAY CONNECTED · 127.0.0.1:9000' : 'LOCAL GATEWAY OFFLINE'}</span>
+          </div>
+          <ThemeToggle portal="guardsaab" theme={theme} onToggle={toggleTheme} className="guardsaab-login-theme-toggle" />
         </div>
       </div>
       <div className="page-kicker">GUARDSAAB AI AGENT GOVERNANCE · CONTROL PLANE</div>
@@ -489,7 +497,7 @@ export default function App() {
 
   return <div className="guardsaab-app dashboard-app">
     <aside className="ops-sidebar">
-      <a className="ops-logo" href="/guardsaab" aria-label="GuardSaaB console"><img src="/guardsaab-logo.svg" alt="GuardSaaB"/></a>
+      <a className="ops-logo" href="/guardsaab" aria-label="GuardSaaB console"><img src={guardsaabLogoSrc} alt="GuardSaaB"/></a>
       <div className="ops-workspace"><span className="ops-workspace-mark">N</span><span><b>Northstar Works</b><small>Governance console</small></span><i>⌄</i></div>
       <span className="ops-nav-label">WORKSPACE</span>
       <nav className="ops-nav">
@@ -502,7 +510,7 @@ export default function App() {
       <div className="ops-sidebar-bottom"><span className="ops-nav-label">SIGNED IN</span><div className="ops-user"><span>{role.slice(0, 1)}</span><div><b>{user.displayName}</b><small>{role} · {user.username}</small></div></div><button className="ops-signout" onClick={signOut}>Sign out</button></div>
     </aside>
     <div className="ops-main-shell">
-      <header className="ops-topbar"><div className="ops-breadcrumb"><span>Northstar Works</span><b>/</b><strong>{pageLabel}</strong></div><div className="ops-top-actions"><span className={`ops-connection ${connected ? 'connected' : ''}`}><i/>{connected ? 'Gateway connected' : 'Gateway offline'}</span><button aria-label="Notifications" className="ops-icon-button">♧{totalApprovals > 0 && <i/>}</button><button className="ops-profile" onClick={signOut}><span>{role.slice(0,1)}</span>{role}<b>⌄</b></button></div></header>
+      <header className="ops-topbar"><div className="ops-breadcrumb"><span>Northstar Works</span><b>/</b><strong>{pageLabel}</strong></div><div className="ops-top-actions"><span className={`ops-connection ${connected ? 'connected' : ''}`}><i/>{connected ? 'Gateway connected' : 'Gateway offline'}</span><ThemeToggle portal="guardsaab" theme={theme} onToggle={toggleTheme} className="ops-theme-toggle" /><button aria-label="Notifications" className="ops-icon-button">♧{totalApprovals > 0 && <i/>}</button><button className="ops-profile" onClick={signOut}><span>{role.slice(0,1)}</span>{role}<b>⌄</b></button></div></header>
       <main className="ops-content">
         {page === 'overview' && <>
           <div className="ops-page-heading"><div><span className="ops-eyebrow">MONDAY, {new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}).toUpperCase()}</span><h1>Governance overview</h1><p>Monitor agent activity, review requests, and follow company policy decisions.</p></div><span className="ops-live-badge"><i/>LIVE WORKSPACE</span></div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { COMPANY_DEMO_KEY } from './companyAudit';
+import { useTheme, ThemeToggle } from './theme';
 
 type Role = 'Employee' | 'HR' | 'CEO';
 type Employee = { id: string; name: string; title: string; department: string; manager: string; salary: number; attendance: number; leaveUsed: number; leaveTotal: number; fundQuota: number; fundsRemaining: number; account: string; bonus: number };
@@ -50,6 +51,7 @@ type ChatLine = { role: 'agent' | 'user'; text: string };
 type CompanyUser = { username: string; displayName: string; role: Role; employeeId?: string };
 
 export function CompanyWorkspace() {
+  const { theme, toggleTheme } = useTheme('northstar');
   const [user, setUser] = useState<CompanyUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [username, setUsername] = useState('');
@@ -246,9 +248,12 @@ export function CompanyWorkspace() {
 
   if (authLoading) return <main className="company-login">
     <div className="company-login-card">
-      <div className="company-brand">
-        <span className="company-monogram">N</span>
-        <span><b>NORTHSTAR</b><small>WORKS · PEOPLE OPERATIONS</small></span>
+      <div className="company-brand-row">
+        <div className="company-brand">
+          <span className="company-monogram">N</span>
+          <span><b>NORTHSTAR</b><small>WORKS · PEOPLE OPERATIONS</small></span>
+        </div>
+        <ThemeToggle portal="northstar" theme={theme} onToggle={toggleTheme} className="company-login-theme-toggle" />
       </div>
       <div className="company-loading-state">
         <div className="company-spinner" />
@@ -260,9 +265,12 @@ export function CompanyWorkspace() {
   if (!user) return <main className="company-login">
     <div className="company-login-container">
       <section className="company-login-card">
-        <div className="company-brand">
-          <span className="company-monogram">N</span>
-          <span><b>NORTHSTAR</b><small>WORKS · PEOPLE OPERATIONS</small></span>
+        <div className="company-brand-row">
+          <div className="company-brand">
+            <span className="company-monogram">N</span>
+            <span><b>NORTHSTAR</b><small>WORKS · PEOPLE OPERATIONS</small></span>
+          </div>
+          <ThemeToggle portal="northstar" theme={theme} onToggle={toggleTheme} className="company-login-theme-toggle" />
         </div>
         <div className="company-kicker">NORTHSTAR WORKS · SECURE ACCESS</div>
         <h1>People operations,<br/><em>in one place.</em></h1>
@@ -348,6 +356,7 @@ export function CompanyWorkspace() {
         ))}
       </nav>
       <div className="company-top-right">
+        <ThemeToggle portal="northstar" theme={theme} onToggle={toggleTheme} className="company-theme-toggle" />
         <div className="company-user">
           <div className="company-user-avatar" aria-hidden="true">{user.displayName.slice(0, 1)}</div>
           <div className="company-user-info">
